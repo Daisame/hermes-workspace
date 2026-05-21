@@ -23,7 +23,7 @@ export function AgentRosterPanel() {
 
   return (
     <>
-      <div className="flex gap-1.5 items-center justify-center">
+      <div className="flex flex-wrap gap-1.5 items-center justify-center">
         {agents.map((agent) => (
           <AgentCard
             key={agent.name}
