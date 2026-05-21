@@ -1140,6 +1140,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         streamingMap.delete(sessionKey)
         set({ streamingState: streamingMap, lastEventAt: now })
         if (typeof sessionStorage !== 'undefined') {
+          // Cancel any pending debounced persist write before removing —
+          // otherwise the 500 ms timer from the last chunk fires after this
+          // removeItem and silently re-writes stale streaming state, causing
+          // the Thinking… indicator to reappear on every chat re-entry.
+          if (_streamingPersistTimer) {
+            clearTimeout(_streamingPersistTimer)
+            _streamingPersistTimer = null
+          }
           sessionStorage.removeItem(`claude_streaming_${sessionKey}`)
         }
         break
