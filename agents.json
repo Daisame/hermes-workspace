@@ -1,0 +1,44 @@
+{
+  "agents": [
+    {
+      "name": "Nyx",
+      "role": "Coder",
+      "port": 8641,
+      "color": "#a78bfa",
+      "description": "Coding agent — Python, shell, infrastructure"
+    },
+    {
+      "name": "Lyra",
+      "role": "Editor",
+      "port": 8642,
+      "color": "#34d399",
+      "description": "Script editor and QA — pipeline content"
+    },
+    {
+      "name": "Alethea",
+      "role": "Research",
+      "port": 8643,
+      "color": "#60a5fa",
+      "description": "Research analyst — pipeline topic research"
+    },
+    {
+      "name": "Cora",
+      "role": "DevOps",
+      "port": 8644,
+      "color": "#f59e0b",
+      "description": "AI stack manager — infrastructure monitoring"
+    },
+    {
+      "name": "Aether",
+      "role": "Auditor",
+      "port": 8645,
+      "color": "#f87171",
+      "description": "Cloud auditor — gemini-2.0-flash (parked)"
+    }
+  ],
+  "federation_proxy": {
+    "host": "10.100.1.9",
+    "port": 9500
+  },
+  "locus_host": "10.100.1.9"
+}
