@@ -15,5 +15,5 @@ export function resolveGatewayUrl(agentName: string): string {
     (k) => k.toLowerCase() === agentName.toLowerCase(),
   )
   if (!key) return ''
-  return `http://127.0.0.1:${STATIC_AGENTS[key].port}`
+  return `http://127.0.0.1:${STATIC_AGENTS[key].port}/v1`
 }
