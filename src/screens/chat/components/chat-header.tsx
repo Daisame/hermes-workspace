@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { openHamburgerMenu } from '@/components/mobile-hamburger-menu'
+import { AgentSelectorDropdown } from '@/components/agent-selector-dropdown'
 
 function toTitleCase(value: string): string {
   return value
@@ -485,6 +486,7 @@ function ChatHeaderComponent({
             </div>
           )}
         </div>
+        <AgentSelectorDropdown />
         {renamingTitle ? (
           <span
             className="mr-1 inline-flex size-3 animate-spin rounded-full border border-primary-300 border-t-primary-700"
