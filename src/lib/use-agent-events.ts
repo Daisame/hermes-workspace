@@ -28,7 +28,9 @@ export function useAgentEvents(agentName: string | null) {
   }, [])
 
   useEffect(() => {
-    // Close any existing connection
+    // Reset state and close any existing connection when agent changes
+    setEvents([])
+    setConnected(false)
     if (esRef.current) {
       esRef.current.close()
       esRef.current = null
