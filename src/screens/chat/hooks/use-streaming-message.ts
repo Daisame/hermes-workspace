@@ -90,6 +90,7 @@ type UseStreamingMessageOptions = {
   }) => void
   acceptedTimeoutMs?: number
   handoffTimeoutMs?: number
+  gatewayBaseUrl?: string
 }
 
 export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
@@ -866,6 +867,7 @@ export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
             attachments: params.attachments,
             idempotencyKey: params.idempotencyKey ?? crypto.randomUUID(),
             model: params.model || undefined,
+            gatewayBaseUrl: options.gatewayBaseUrl || undefined,
             locale:
               typeof window !== 'undefined'
                 ? localStorage.getItem('hermes-workspace-locale') || 'en'

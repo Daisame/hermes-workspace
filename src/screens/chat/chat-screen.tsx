@@ -3,6 +3,9 @@
 export let _localModelOverride = ''
 export function setLocalModelOverride(model: string) { _localModelOverride = model }
 
+import { resolveGatewayUrl } from '@/server/federation-providers'
+import { getSessionScope } from './session-scope'
+
 import {
   useCallback,
   useEffect,
@@ -1024,6 +1027,9 @@ export function ChatScreen({
 
   const gatewayModel = currentModelQuery.data || ''
   const currentModel = _localModelOverride || gatewayModel
+  // Per-agent gateway URL — resolves to the selected agent's port from roster
+  const agentScope = getSessionScope()
+  const agentGatewayUrl = agentScope ? resolveGatewayUrl(agentScope) : ''
 
   // Ref so sendMessage can always read latest thinkingLevel without being in deps
   const thinkingLevelRef = useRef<ThinkingLevel>(thinkingLevel)
@@ -1220,6 +1226,7 @@ export function ChatScreen({
     }, [setWaitingForResponse]),
     acceptedTimeoutMs: modelsQuery.data?.streamAcceptedTimeoutMs,
     handoffTimeoutMs: modelsQuery.data?.streamHandoffTimeoutMs,
+    gatewayBaseUrl: agentGatewayUrl || undefined,
   })
 
   // Cancel any in-flight stream when the user navigates between sessions or

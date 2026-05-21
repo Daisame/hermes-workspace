@@ -17,7 +17,7 @@ export interface AgentStaticConfig {
   color: string
 }
 
-const STATIC_AGENTS: Record<string, AgentStaticConfig> = {
+export const STATIC_AGENTS: Record<string, AgentStaticConfig> = {
   Nyx:     { name: 'Nyx',     role: 'Coder',    port: 8641, color: '#a78bfa' },
   Lyra:    { name: 'Lyra',    role: 'Editor',   port: 8642, color: '#34d399' },
   Alethea: { name: 'Alethea', role: 'Research', port: 8643, color: '#60a5fa' },

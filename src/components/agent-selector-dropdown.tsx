@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { useAgentRoster } from '@/lib/federation-roster'
 import { setLocalModelOverride } from '@/screens/chat/local-model-override'
+import { setSessionScope } from '@/screens/chat/session-scope'
 import {
   MenuRoot,
   MenuTrigger,
@@ -13,6 +15,7 @@ import {
 const STORAGE_KEY = 'locus-selected-agent'
 
 export function AgentSelectorDropdown() {
+  const navigate = useNavigate()
   const { agents } = useAgentRoster()
   const [selectedName, setSelectedName] = useState<string>('')
   const [open, setOpen] = useState(false)
@@ -24,6 +27,7 @@ export function AgentSelectorDropdown() {
       if (saved) {
         setSelectedName(saved)
         setLocalModelOverride(saved)
+        setSessionScope(saved)
       }
     } catch { /* ignore */ }
   }, [])
@@ -38,8 +42,10 @@ export function AgentSelectorDropdown() {
       setOpen(false)
       try { localStorage.setItem(STORAGE_KEY, lower) } catch { /* ignore */ }
       setLocalModelOverride(lower)
+      setSessionScope(lower)
+      navigate({ to: '/chat/$sessionKey', params: { sessionKey: `agent:${lower}:main` } })
     },
-    [],
+    [navigate],
   )
 
   const handleClear = useCallback(() => {
@@ -47,7 +53,9 @@ export function AgentSelectorDropdown() {
     setOpen(false)
     try { localStorage.removeItem(STORAGE_KEY) } catch { /* ignore */ }
     setLocalModelOverride('')
-  }, [])
+    setSessionScope(null)
+    navigate({ to: '/chat/$sessionKey', params: { sessionKey: 'main' } })
+  }, [navigate])
 
   return (
     <MenuRoot open={open} onOpenChange={setOpen}>

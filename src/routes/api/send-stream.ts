@@ -365,6 +365,14 @@ export const Route = createFileRoute('/api/send-stream')({
             }
           }
         }
+
+        // Federation gateway routing — use per-agent gateway URL when provided.
+        // Local providers take priority; federation gateway is a fallback target.
+        const gatewayBaseUrl: string | undefined =
+          typeof body.gatewayBaseUrl === 'string' && body.gatewayBaseUrl.trim() !== ''
+            ? body.gatewayBaseUrl.trim()
+            : undefined
+
         if (chatMode === 'portable' && sessionKey === 'new') {
           // In portable mode there is no backend session store, so a UUID session
           // key would cause the workspace to navigate to /chat/{uuid} and attempt
@@ -731,7 +739,7 @@ export const Route = createFileRoute('/api/send-stream')({
                     signal: abortController.signal,
                     stream: true,
                     sessionId: portableSessionKey,
-                    baseUrl: localBaseUrl,
+                    baseUrl: localBaseUrl || gatewayBaseUrl,
                   })
 
                   let thinking = ''

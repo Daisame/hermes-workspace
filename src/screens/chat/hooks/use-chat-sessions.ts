@@ -5,6 +5,7 @@ import { chatQueryKeys, fetchSessions } from '../chat-queries'
 import { isRecentSession } from '../pending-send'
 import { filterSessionsWithTombstones } from '../session-tombstones'
 import { useSessionTitles } from '../session-title-store'
+import { getSessionScope } from '../session-scope'
 import type { SessionTitleInfo } from '../session-title-store'
 import type { SessionMeta } from '../types'
 
@@ -75,10 +76,20 @@ export function useChatSessions({
   })
   const storedTitles = useSessionTitles()
 
+  // Filter sessions by active agent scope — only show sessions belonging to
+  // the currently selected agent's key prefix (e.g., "nyx:").
+  const sessionScope = getSessionScope()
+
   const sessions = useMemo(() => {
     const rawSessions = sessionsQuery.data ?? []
     const filtered = filterSessionsWithTombstones(rawSessions)
-    const merged = filtered.map((session) =>
+
+    // Scope filtering: when an agent is active, only show its sessions.
+    let scoped = filtered
+    if (sessionScope) {
+      scoped = filtered.filter((s) => s.friendlyId.startsWith(`agent:${sessionScope}:`))
+    }
+    const merged = scoped.map((session) =>
       mergeSessionTitle(session, storedTitles[session.friendlyId]),
     )
     const activeAlreadyPresent = merged.some(
@@ -105,6 +116,7 @@ export function useChatSessions({
     activeFriendlyId,
     forcedSessionKey,
     sessionsQuery.data,
+    sessionScope,
     storedTitles,
   ])
 
