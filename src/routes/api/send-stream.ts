@@ -738,7 +738,11 @@ export const Route = createFileRoute('/api/send-stream')({
                         : undefined,
                     signal: abortController.signal,
                     stream: true,
-                    sessionId: portableSessionKey,
+                    // Don't send sessionId when routing direct-to-gateway —
+                    // session continuation auth is not configured on agent
+                    // gateways and the header triggers a 403. History is
+                    // managed locally via getLocalMessages in portable mode.
+                    sessionId: gatewayBaseUrl ? undefined : portableSessionKey,
                     baseUrl: gatewayBaseUrl || localBaseUrl,
                   })
 
