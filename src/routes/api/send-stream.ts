@@ -739,7 +739,7 @@ export const Route = createFileRoute('/api/send-stream')({
                     signal: abortController.signal,
                     stream: true,
                     sessionId: portableSessionKey,
-                    baseUrl: localBaseUrl || gatewayBaseUrl,
+                    baseUrl: gatewayBaseUrl || localBaseUrl,
                   })
 
                   let thinking = ''
