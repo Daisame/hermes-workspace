@@ -366,8 +366,12 @@ export const Route = createFileRoute('/api/send-stream')({
           }
         }
         if (chatMode === 'portable' && sessionKey === 'new') {
-          sessionKey = crypto.randomUUID()
-          resolvedFriendlyId = sessionKey
+          // In portable mode there is no backend session store, so a UUID session
+          // key would cause the workspace to navigate to /chat/{uuid} and attempt
+          // a session load that always 404s. Pin to 'main' so the response renders
+          // in the current view without any navigation or session-fetch.
+          sessionKey = 'main'
+          resolvedFriendlyId = 'main'
         }
 
         const workspaceScope = await loadWorkspaceCatalog().catch(() => null)
