@@ -1132,13 +1132,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
           persistRecoveryMessage(sessionKey, completeMessage)
         }
 
-        // Clear streaming state immediately — tool calls are preserved via
-        // __streamToolCalls embedded on completeMessage above, so pills survive
-        // in the history message without needing streaming state alive.
-        // DO NOT keep a stub here — it keeps isRealtimeStreaming=true which
-        // injects an invisible streaming placeholder that causes a blank gap.
+        // Clear streaming and waiting state. The 'done' event is the source of
+        // truth that a run has completed, so it should clear all related state.
         streamingMap.delete(sessionKey)
-        set({ streamingState: streamingMap, lastEventAt: now })
+        const waitingKeys = new Set(state.waitingSessionKeys)
+        const { [sessionKey]: _removedMeta, ...waitingMeta } =
+          state.waitingSessionMeta
+        const wasWaiting = waitingKeys.delete(sessionKey)
+
+        set({
+          streamingState: streamingMap,
+          waitingSessionKeys: waitingKeys,
+          waitingSessionMeta: waitingMeta,
+          lastEventAt: now,
+        })
+
+        if (wasWaiting) {
+          removeWaitingState(sessionKey)
+        }
+
         if (typeof sessionStorage !== 'undefined') {
           // Cancel any pending debounced persist write before removing —
           // otherwise the 500 ms timer from the last chunk fires after this
