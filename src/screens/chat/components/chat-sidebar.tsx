@@ -56,6 +56,7 @@ import {
   useChatSettingsStore,
 } from '@/hooks/use-chat-settings'
 import { StatusDot } from '@/components/status-indicator'
+import { AgentRosterPanel } from '@/components/agent-roster'
 import {
   MenuContent,
   MenuItem,
@@ -1154,6 +1155,11 @@ function ChatSidebarComponent({
 
       {/* ── Footer with User Menu ─────────────────────────────────── */}
       <div className="px-2 py-2.5 border-t shrink-0 theme-border theme-panel">
+        {/* Federation roster — live agent status bar */}
+        {!isMobile && (
+          <AgentRosterPanel />
+        )}
+
         {/* User card + actions */}
         <div
           className={cn(
