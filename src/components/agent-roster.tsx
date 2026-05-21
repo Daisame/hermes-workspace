@@ -1,10 +1,13 @@
 /**
  * AgentRosterPanel — compact sidebar row of agent cards with live status dots.
  */
+import { useState } from 'react'
 import { useAgentRoster } from '@/lib/federation-roster'
+import { AgentEventFeed } from './agent-event-feed'
 
 export function AgentRosterPanel() {
   const { agents, loading, error } = useAgentRoster()
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
 
   if (loading && agents.length === 0) {
     return <div className="text-xs text-slate-500 p-2">Loading roster…</div>
@@ -19,11 +22,32 @@ export function AgentRosterPanel() {
   }
 
   return (
-    <div className="flex gap-1.5 items-center justify-center">
-      {agents.map((agent) => (
-        <AgentCard key={agent.name} agent={agent} />
-      ))}
-    </div>
+    <>
+      <div className="flex gap-1.5 items-center justify-center">
+        {agents.map((agent) => (
+          <AgentCard
+            key={agent.name}
+            agent={agent}
+            isSelected={selectedAgent === agent.name}
+            onSelect={() =>
+              setSelectedAgent(
+                selectedAgent === agent.name ? null : agent.name,
+              )
+            }
+          />
+        ))}
+      </div>
+
+      {selectedAgent && (
+        <div className="mt-2">
+          <AgentEventFeed
+            agentName={selectedAgent}
+            color={agents.find((a) => a.name.toLowerCase() === selectedAgent.toLowerCase())?.color ?? '#888'}
+            onClose={() => setSelectedAgent(null)}
+          />
+        </div>
+      )}
+    </>
   )
 }
 
@@ -37,14 +61,26 @@ interface AgentCardProps {
     status: 'ok' | 'unreachable'
     active_agents: number | null
   }
+  isSelected: boolean
+  onSelect: () => void
 }
 
-function AgentCard({ agent }: AgentCardProps) {
+function AgentCard({ agent, isSelected, onSelect }: AgentCardProps) {
   const isOnline = agent.status === 'ok'
 
   return (
     <div
-      className="group relative flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-800/60 border border-slate-700/50 hover:border-slate-600 transition-colors cursor-default"
+      onClick={onSelect}
+      className={`group relative flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-800/60 border transition-colors cursor-pointer ${
+        isSelected
+          ? ''
+          : 'border-slate-700/50 hover:border-slate-600'
+      }`}
+      style={
+        isSelected
+          ? { borderColor: agent.color, boxShadow: `0 0 4px ${agent.color}40` }
+          : undefined
+      }
       title={`${agent.name} — ${agent.role}${isOnline ? '' : ' (offline)'}`}
     >
       {/* Status dot */}
