@@ -418,7 +418,7 @@ export function ProfilesScreen() {
                 {/* Name + provider */}
                 <div className="mt-3 flex items-center justify-center gap-1.5">
                   <h2 className="text-center text-lg font-bold text-primary-900 dark:text-neutral-100">
-                    {profile.name}
+                    {agentColors[profile.name.toLowerCase()]?.name || profile.name}
                   </h2>
                   {agentColors[profile.name.toLowerCase()]?.color && (
                     <span
@@ -473,21 +473,24 @@ export function ProfilesScreen() {
                   />{' '}
                   Details
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRenameTarget(profile)
-                    setRenameValue(profile.name)
-                  }}
-                  className="flex flex-1 items-center justify-center gap-1.5 border-r border-primary-200 py-2.5 text-xs font-semibold text-primary-700 transition-colors hover:bg-primary-100 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-900"
-                >
-                  <HugeiconsIcon
-                    icon={Edit02Icon}
-                    size={13}
-                    strokeWidth={1.8}
-                  />{' '}
-                  Rename
-                </button>
+                {!agentColors[profile.name.toLowerCase()]?.color && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRenameTarget(profile)
+                      setRenameValue(profile.name)
+                    }}
+                    className="flex flex-1 items-center justify-center gap-1.5 border-r border-primary-200 py-2.5 text-xs font-semibold text-primary-700 transition-colors hover:bg-primary-100 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-900"
+                  >
+                    <HugeiconsIcon
+                      icon={Edit02Icon}
+                      size={13}
+                      strokeWidth={1.8}
+                    />{' '}
+                    Rename
+                  </button>
+                )}
+                {!agentColors[profile.name.toLowerCase()]?.color && (
                 <button
                   type="button"
                   onClick={() => void handleDelete(profile.name)}
@@ -506,6 +509,7 @@ export function ProfilesScreen() {
                   />{' '}
                   Delete
                 </button>
+                )}
               </div>
             </article>
           )
