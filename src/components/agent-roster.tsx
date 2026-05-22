@@ -1,13 +1,29 @@
 /**
  * AgentRosterPanel — compact sidebar row of agent cards with live status dots.
  */
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { Activity01Icon } from '@hugeicons/core-free-icons'
 import { useAgentRoster } from '@/lib/federation-roster'
+import { setLocalModelOverride } from '@/screens/chat/local-model-override'
+import { setSessionScope } from '@/screens/chat/session-scope'
 import { AgentEventFeed } from './agent-event-feed'
 
 export function AgentRosterPanel() {
+  const navigate = useNavigate()
   const { agents, loading, error } = useAgentRoster()
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
+
+  const handleNavigate = useCallback(
+    (agentName: string) => {
+      const lower = agentName.toLowerCase()
+      try { localStorage.setItem('locus-selected-agent', lower) } catch { /* ignore */ }
+      setLocalModelOverride(lower)
+      setSessionScope(lower)
+      navigate({ to: '/chat/$sessionKey', params: { sessionKey: `agent:${lower}:main` } })
+    },
+    [navigate],
+  )
 
   if (loading && agents.length === 0) {
     return <div className="text-xs text-slate-500 p-2">Loading roster…</div>
@@ -29,7 +45,8 @@ export function AgentRosterPanel() {
             key={agent.name}
             agent={agent}
             isSelected={selectedAgent === agent.name}
-            onSelect={() =>
+            onNavigate={() => handleNavigate(agent.name)}
+            onToggleFeed={() =>
               setSelectedAgent(
                 selectedAgent === agent.name ? null : agent.name,
               )
@@ -62,15 +79,16 @@ interface AgentCardProps {
     active_agents: number | null
   }
   isSelected: boolean
-  onSelect: () => void
+  onNavigate: () => void
+  onToggleFeed: () => void
 }
 
-function AgentCard({ agent, isSelected, onSelect }: AgentCardProps) {
+function AgentCard({ agent, isSelected, onNavigate, onToggleFeed }: AgentCardProps) {
   const isOnline = agent.status === 'ok'
 
   return (
     <div
-      onClick={onSelect}
+      onClick={onNavigate}
       className={`group relative flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-800/60 border transition-colors cursor-pointer ${
         isSelected
           ? ''
@@ -103,6 +121,25 @@ function AgentCard({ agent, isSelected, onSelect }: AgentCardProps) {
           {agent.active_agents}
         </span>
       )}
+
+      {/* Feed toggle button */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          onToggleFeed()
+        }}
+        className={`absolute top-0.5 right-0.5 p-0.5 rounded transition-opacity hover:opacity-100 ${
+          isSelected ? 'opacity-70' : 'opacity-30'
+        }`}
+        title={isSelected ? 'Hide event feed' : 'Show event feed'}
+      >
+        <Activity01Icon
+          className="inline"
+          size={12}
+          color={isSelected ? agent.color : '#94a3b8'}
+        />
+      </button>
 
       {/* Offline tooltip overlay */}
       {!isOnline && (
