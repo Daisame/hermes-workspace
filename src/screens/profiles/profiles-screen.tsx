@@ -19,6 +19,7 @@ import { DialogContent, DialogRoot, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { toast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
+import { useAgentRoster } from '@/lib/federation-roster'
 
 type ProfileSummary = {
   name: string
@@ -140,6 +141,44 @@ export function ProfilesScreen() {
 
   const profiles = profilesQuery.data?.profiles ?? []
   const activeProfile = profilesQuery.data?.activeProfile ?? 'default'
+
+  // ── Agents.json cache for color accents (Addition A) ────────────
+  const [agentColors, setAgentColors] = useState<{[key: string]: {color: string}}>({})
+  useEffect(() => {
+    fetch('/agents.json')
+      .then(r => r.json())
+      .then((data: { agents?: Array<{name: string; color: string}> }) => {
+        const map: {[key: string]: {color: string}} = {}
+        data.agents?.forEach(a => { map[a.name.toLowerCase()] = a })
+        setAgentColors(map)
+      })
+      .catch(() => {})
+  }, [])
+
+  // ── Agent roster for online dots (Addition B) ───────────────────
+  const { agents: rosterAgents } = useAgentRoster()
+  const rosterMap = useMemo(() => {
+    const m: {[key: string]: string} = {}
+    rosterAgents.forEach(a => { m[a.name.toLowerCase()] = a.status })
+    return m
+  }, [rosterAgents])
+
+  // ── Agent detail data for drawer (Addition C) ───────────────────
+  const [agentDetail, setAgentDetail] = useState<{soul: string|null; memory: string|null; skills: {local: string[]; shared: string[]}} | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+
+  useEffect(() => {
+    if (!detailsName) { setAgentDetail(null); return }
+    const lower = detailsName.toLowerCase()
+    const validAgents = ['nyx', 'lyra', 'alethea', 'cora', 'aether']
+    if (!validAgents.includes(lower)) { setAgentDetail(null); return }
+    setDetailLoading(true)
+    fetch(`/api/federation/agents/${lower}/detail`)
+      .then(r => r.json())
+      .then(data => { if (data.ok) setAgentDetail({ soul: data.soul, memory: data.memory, skills: data.skills }) })
+      .catch(() => setAgentDetail(null))
+      .finally(() => setDetailLoading(false))
+  }, [detailsName])
 
   const sorted = useMemo(() => profiles, [profiles])
 
@@ -335,10 +374,15 @@ export function ProfilesScreen() {
               key={profile.name}
               className="group relative overflow-hidden rounded-2xl border border-primary-200 bg-primary-50/80 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
             >
-              {/* Active glow accent */}
-              {profile.active && (
+              {/* Agent color accent bar (Addition A) */}
+              {agentColors[profile.name.toLowerCase()]?.color ? (
+                <div
+                  className="absolute inset-x-0 top-0 h-1"
+                  style={{ backgroundColor: agentColors[profile.name.toLowerCase()].color }}
+                />
+              ) : profile.active ? (
                 <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-accent-500 to-emerald-400" />
-              )}
+              ) : null}
 
               {/* Centered avatar hero */}
               <div className="flex flex-col items-center pt-6 pb-1">
@@ -347,8 +391,12 @@ export function ProfilesScreen() {
                     className={cn(
                       'rounded-full p-1',
                       profile.active
-                        ? 'bg-gradient-to-br from-emerald-400 via-accent-500 to-emerald-500 shadow-lg shadow-emerald-500/20'
-                        : 'bg-gradient-to-br from-primary-200 to-primary-300 dark:from-neutral-700 dark:to-neutral-600',
+                        ? (agentColors[profile.name.toLowerCase()]?.color
+                            ? ''
+                            : 'bg-gradient-to-br from-emerald-400 via-accent-500 to-emerald-500 shadow-lg shadow-emerald-500/20')
+                        : (agentColors[profile.name.toLowerCase()]?.color
+                            ? ''
+                            : 'bg-gradient-to-br from-primary-200 to-primary-300 dark:from-neutral-700 dark:to-neutral-600'),
                     )}
                   >
                     <img
@@ -383,9 +431,20 @@ export function ProfilesScreen() {
                 </div>
 
                 {/* Name + provider */}
-                <h2 className="mt-3 text-center text-lg font-bold text-primary-900 dark:text-neutral-100">
-                  {profile.name}
-                </h2>
+                <div className="mt-3 flex items-center justify-center gap-1.5">
+                  <h2 className="text-center text-lg font-bold text-primary-900 dark:text-neutral-100">
+                    {profile.name}
+                  </h2>
+                  {agentColors[profile.name.toLowerCase()]?.color && (
+                    <span
+                      className="size-2 rounded-full"
+                      style={{
+                        backgroundColor: rosterMap[profile.name.toLowerCase()] === 'ok' ? '#22c55e' : '#ef4444',
+                        boxShadow: `0 0 6px ${rosterMap[profile.name.toLowerCase()] === 'ok' ? '#22c55e80' : '#ef444480'}`,
+                      }}
+                    />
+                  )}
+                </div>
                 <span className="mt-1 inline-block rounded-full bg-primary-100 px-2.5 py-0.5 text-[11px] font-medium text-primary-600 dark:bg-neutral-800 dark:text-neutral-400">
                   {profile.provider || 'no provider'}
                 </span>
@@ -966,6 +1025,82 @@ export function ProfilesScreen() {
                     {JSON.stringify(detailQuery.data.profile.config, null, 2)}
                   </pre>
                 </div>
+
+                {/* ── Agent detail sections (Addition C) ─────────── */}
+                {agentDetail !== null && agentColors[(detailQuery.data?.profile?.name || '').toLowerCase()]?.color ? (
+                  <>
+                    {/* SOUL section */}
+                    <div className="rounded-xl border border-primary-200 bg-primary-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">
+                      <div className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary-500 dark:text-neutral-400">
+                        SOUL
+                      </div>
+                      {agentDetail.soul ? (
+                        <pre className="max-h-[320px] overflow-auto rounded-lg border border-primary-200 bg-primary-100/70 p-3 text-xs leading-relaxed text-primary-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200">
+                          {agentDetail.soul}
+                        </pre>
+                      ) : (
+                        <p className="text-sm text-primary-400 dark:text-neutral-500">No SOUL.md</p>
+                      )}
+                    </div>
+
+                    {/* Memory section */}
+                    <div className="rounded-xl border border-primary-200 bg-primary-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">
+                      <div className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary-500 dark:text-neutral-400">
+                        Memory
+                      </div>
+                      {agentDetail.memory ? (
+                        <pre className="max-h-[320px] overflow-auto rounded-lg border border-primary-200 bg-primary-100/70 p-3 text-xs leading-relaxed text-primary-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200">
+                          {agentDetail.memory}
+                        </pre>
+                      ) : (
+                        <p className="text-sm text-primary-400 dark:text-neutral-500">No memory file</p>
+                      )}
+                    </div>
+
+                    {/* Skills section */}
+                    <div className="rounded-xl border border-primary-200 bg-primary-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">
+                      <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary-500 dark:text-neutral-400">
+                        Skills
+                      </div>
+                      {(agentDetail.skills.local.length > 0 || agentDetail.skills.shared.length > 0) ? (
+                        <div className="space-y-2">
+                          {agentDetail.skills.local.length > 0 && (
+                            <div>
+                              <div className="text-[10px] font-semibold uppercase tracking-wider text-primary-400 dark:text-neutral-500 mb-1.5">Agent Skills</div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {agentDetail.skills.local.map(s => (
+                                  <span key={s} className="inline-flex items-center rounded-md bg-primary-200/70 px-2 py-0.5 text-[11px] font-medium text-primary-800 dark:bg-neutral-700 dark:text-neutral-200">
+                                    {s}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {agentDetail.skills.shared.length > 0 && (
+                            <div>
+                              <div className="text-[10px] font-semibold uppercase tracking-wider text-primary-400 dark:text-neutral-500 mb-1.5">Shared Pool</div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {agentDetail.skills.shared.map(s => (
+                                  <span key={s} className="inline-flex items-center rounded-md bg-primary-200/70 px-2 py-0.5 text-[11px] font-medium text-primary-800 dark:bg-neutral-700 dark:text-neutral-200">
+                                    {s}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-primary-400 dark:text-neutral-500">No skills configured</p>
+                      )}
+                    </div>
+                  </>
+                ) : null}
+
+                {detailLoading && (
+                  <div className="rounded-xl border border-primary-200 bg-primary-50/80 p-4 text-sm text-primary-500 dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-400">
+                    Loading agent details…
+                  </div>
+                )}
               </div>
             ) : detailQuery.isLoading ? (
               <div className="flex min-h-[120px] items-center justify-center text-sm text-primary-500 dark:text-neutral-400">
