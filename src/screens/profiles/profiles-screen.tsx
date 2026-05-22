@@ -122,6 +122,38 @@ export function ProfilesScreen() {
   const [descriptionDraft, setDescriptionDraft] = useState('')
   const [savingDescription, setSavingDescription] = useState(false)
 
+  // ── Skill content modal (Addition D) ────────────────────────
+  const [skillModalOpen, setSkillModalOpen] = useState(false)
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
+  const [selectedSkillName, setSelectedSkillName] = useState<string | null>(null)
+  const [skillScope, setSkillScope] = useState<'local' | 'shared'>('local')
+  const [skillContent, setSkillContent] = useState<string | null>(null)
+  const [skillLoading, setSkillLoading] = useState(false)
+
+  async function openSkillModal(agent: string, skillName: string, scope: 'local' | 'shared') {
+    setSelectedAgent(agent)
+    setSelectedSkillName(skillName)
+    setSkillScope(scope)
+    setSkillContent(null)
+    setSkillLoading(true)
+    setSkillModalOpen(true)
+    try {
+      const res = await fetch(
+        `/api/federation/agents/${encodeURIComponent(agent)}/skill/read?skillName=${encodeURIComponent(skillName)}&scope=${scope}`,
+      )
+      if (res.ok) {
+        const data = await res.json()
+        setSkillContent(data.content || '')
+      } else {
+        setSkillContent('Failed to load skill content.')
+      }
+    } catch {
+      setSkillContent('Network error — could not fetch skill content.')
+    } finally {
+      setSkillLoading(false)
+    }
+  }
+
   const profilesQuery = useQuery({
     queryKey: ['profiles', 'list'],
     queryFn: () =>
@@ -1038,9 +1070,14 @@ export function ProfilesScreen() {
                               <div className="text-[10px] font-semibold uppercase tracking-wider text-primary-400 dark:text-neutral-500 mb-1.5">Agent Skills</div>
                               <div className="flex flex-wrap gap-1.5">
                                 {agentDetail.skills.local.map(s => (
-                                  <span key={s} className="inline-flex items-center rounded-md bg-primary-200/70 px-2 py-0.5 text-[11px] font-medium text-primary-800 dark:bg-neutral-700 dark:text-neutral-200">
+                                  <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => detailsName && void openSkillModal(detailsName, s, 'local')}
+                                    className="inline-flex items-center rounded-md bg-primary-200/70 px-2 py-0.5 text-[11px] font-medium text-primary-800 transition-colors hover:bg-accent-200 dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
+                                  >
                                     {s}
-                                  </span>
+                                  </button>
                                 ))}
                               </div>
                             </div>
@@ -1050,9 +1087,14 @@ export function ProfilesScreen() {
                               <div className="text-[10px] font-semibold uppercase tracking-wider text-primary-400 dark:text-neutral-500 mb-1.5">Shared Pool</div>
                               <div className="flex flex-wrap gap-1.5">
                                 {agentDetail.skills.shared.map(s => (
-                                  <span key={s} className="inline-flex items-center rounded-md bg-primary-200/70 px-2 py-0.5 text-[11px] font-medium text-primary-800 dark:bg-neutral-700 dark:text-neutral-200">
+                                  <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => detailsName && void openSkillModal(detailsName, s, 'shared')}
+                                    className="inline-flex items-center rounded-md bg-primary-200/70 px-2 py-0.5 text-[11px] font-medium text-primary-800 transition-colors hover:bg-accent-200 dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
+                                  >
                                     {s}
-                                  </span>
+                                  </button>
                                 ))}
                               </div>
                             </div>
@@ -1094,6 +1136,53 @@ export function ProfilesScreen() {
           </div>
         </DialogContent>
       </DialogRoot>
+
+      {/* ── Skill content modal (Addition D) ─────────────── */}
+      <DialogRoot
+        open={skillModalOpen}
+        onOpenChange={(open) => !open && setSkillModalOpen(false)}
+      >
+        <DialogContent className="w-[min(640px,94vw)] max-w-none p-0 max-h-[85vh] flex flex-col">
+          {/* Header */}
+          <div className="shrink-0 border-b border-primary-200 px-6 pb-3 pt-5 dark:border-neutral-800">
+            <DialogTitle className="text-base font-semibold">
+              {selectedSkillName || 'Skill'}
+            </DialogTitle>
+            <p className="mt-0.5 text-xs text-primary-500 dark:text-neutral-400">
+              {(skillScope === 'local' ? `Agent skill · ${selectedAgent}` : `Shared pool`)}
+            </p>
+          </div>
+
+          {/* Body */}
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+            {skillLoading ? (
+              <div className="flex min-h-[80px] items-center justify-center text-sm text-primary-500 dark:text-neutral-400">
+                Loading skill…
+              </div>
+            ) : skillContent ? (
+              <pre className="max-h-[60vh] overflow-auto rounded-lg border border-primary-200 bg-primary-100/70 p-3 text-xs leading-relaxed whitespace-pre-wrap text-primary-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200">
+                {skillContent}
+              </pre>
+            ) : (
+              <div className="flex min-h-[80px] items-center justify-center text-sm text-red-500">
+                Failed to load skill content.
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="shrink-0 flex justify-end border-t border-primary-200 px-6 py-3 dark:border-neutral-800">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSkillModalOpen(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </DialogRoot>
+
     </div>
   )
 }
