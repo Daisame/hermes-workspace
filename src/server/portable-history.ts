@@ -5,17 +5,21 @@ export type PortableHistoryMessage = {
 
 export function shouldReplayPortableHistory(options?: {
   localBaseUrl?: string
+  gatewayBaseUrl?: string
   bearerToken?: string
 }): boolean {
   const localBaseUrl = options?.localBaseUrl?.trim() || ''
-  // Direct local-provider / custom-base-url requests remain stateless from the
-  // workspace perspective, so replay the transcript there.
+  const gatewayBaseUrl = options?.gatewayBaseUrl?.trim() || ''
+  // Direct local-provider / custom-base-url requests: replay history.
   if (localBaseUrl) return true
 
-  // When portable chat targets the Hermes gateway, Workspace now forwards a
-  // stable X-Hermes-Session-Id / X-Claude-Session-Id for server-side session
-  // continuity. Replaying the full transcript on every turn would duplicate
-  // prompt context and can explode token usage.
+  // Direct agent gateway routing suppresses X-Hermes-Session-Id (causes 403).
+  // Without server-side session binding, we must replay history ourselves so
+  // the agent sees conversation context on every turn.
+  if (gatewayBaseUrl) return true
+
+  // Default Hermes gateway path: session ID is forwarded, server maintains
+  // history — replaying here would duplicate context.
   return false
 }
 

@@ -557,7 +557,7 @@ export const Route = createFileRoute('/api/send-stream')({
                   const effectiveHistory = selectPortableConversationHistory(
                     persistedHistory,
                     history,
-                    { localBaseUrl },
+                    { localBaseUrl, gatewayBaseUrl },
                   )
                   const portableMessages: Array<OpenAICompatMessage> = [
                     ...localeSystemMsg,
