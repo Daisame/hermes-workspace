@@ -490,7 +490,6 @@ export function ProfilesScreen() {
                     Rename
                   </button>
                 )}
-                {!agentColors[profile.name.toLowerCase()]?.color && (
                 <button
                   type="button"
                   onClick={() => void handleDelete(profile.name)}
@@ -509,7 +508,6 @@ export function ProfilesScreen() {
                   />{' '}
                   Delete
                 </button>
-                )}
               </div>
             </article>
           )
