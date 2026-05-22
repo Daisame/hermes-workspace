@@ -262,21 +262,6 @@ export function ProfilesScreen() {
     }
   }
 
-  async function handleActivate(name: string) {
-    setBusyName(name)
-    try {
-      await postJson('/api/profiles/activate', { name })
-      toast(`Activated profile ${name}`, { type: 'success' })
-      await refreshProfiles()
-    } catch (error) {
-      toast(
-        error instanceof Error ? error.message : 'Failed to activate profile',
-        { type: 'error' },
-      )
-    } finally {
-      setBusyName(null)
-    }
-  }
 
   async function handleDelete(name: string) {
     if (
@@ -476,24 +461,6 @@ export function ProfilesScreen() {
 
               {/* Actions */}
               <div className="mt-4 flex border-t border-primary-200 dark:border-neutral-800">
-                <button
-                  type="button"
-                  onClick={() => void handleActivate(profile.name)}
-                  disabled={profile.active || busy}
-                  className={cn(
-                    'flex flex-1 items-center justify-center gap-1.5 border-r border-primary-200 py-2.5 text-xs font-semibold transition-colors dark:border-neutral-800',
-                    profile.active
-                      ? 'cursor-default text-primary-300 dark:text-neutral-600'
-                      : 'text-primary-700 hover:bg-primary-100 dark:text-neutral-300 dark:hover:bg-neutral-900',
-                  )}
-                >
-                  <HugeiconsIcon
-                    icon={SparklesIcon}
-                    size={13}
-                    strokeWidth={1.8}
-                  />{' '}
-                  Activate
-                </button>
                 <button
                   type="button"
                   onClick={() => setDetailsName(profile.name)}
