@@ -3,6 +3,7 @@
  */
 import { useState, useCallback } from 'react'
 import { useNavigate } from '@tanstack/react-router'
+import { HugeiconsIcon } from '@hugeicons/react'
 import { Activity01Icon } from '@hugeicons/core-free-icons'
 import { useAgentRoster } from '@/lib/federation-roster'
 import { setLocalModelOverride } from '@/screens/chat/local-model-override'
@@ -134,9 +135,10 @@ function AgentCard({ agent, isSelected, onNavigate, onToggleFeed }: AgentCardPro
         }`}
         title={isSelected ? 'Hide event feed' : 'Show event feed'}
       >
-        <Activity01Icon
-          className="inline"
+        <HugeiconsIcon
+          icon={Activity01Icon}
           size={12}
+          strokeWidth={1.5}
           color={isSelected ? agent.color : '#94a3b8'}
         />
       </button>
