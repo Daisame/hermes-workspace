@@ -91,6 +91,8 @@ export type OpenAIChatOptions = {
   sessionId?: string
   /** Override the base URL (e.g. for local providers). Bypasses gateway. */
   baseUrl?: string
+  /** Extra headers merged after built-in headers (auth, session). Used for server-side session auth on direct-gateway routing. */
+  extraHeaders?: Record<string, string>
 }
 
 type OpenAIChatRequest = {
@@ -283,6 +285,9 @@ export async function openaiChat(
   if (bearer) {
     headers['Authorization'] = `Bearer ${bearer}`
   }
+  // Merge extraHeaders after built-in headers — caller can override Authorization
+  // for gateway-to-gateway auth when the workspace routes direct to agent gateways.
+  Object.assign(headers, options.extraHeaders ?? {})
   // Session continuity is part of request routing, not authentication.
   // If the gateway requires auth, _check_auth has already validated the
   // bearer above; when it does not, dropping these headers forces Hermes

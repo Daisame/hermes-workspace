@@ -372,6 +372,8 @@ export const Route = createFileRoute('/api/send-stream')({
           typeof body.gatewayBaseUrl === 'string' && body.gatewayBaseUrl.trim() !== ''
             ? body.gatewayBaseUrl.trim()
             : undefined
+        const gatewayKey = (process.env.HERMES_GATEWAY_KEY ?? '').trim()
+        const useServerSideSession = !!(gatewayBaseUrl && gatewayKey)
 
         if (chatMode === 'portable' && sessionKey === 'new') {
           // In portable mode there is no backend session store, so a UUID session
@@ -554,13 +556,22 @@ export const Route = createFileRoute('/api/send-stream')({
                     content: typeof body.message === 'string' ? body.message : '',
                     timestamp: Date.now(),
                   })
-                  const effectiveHistory = selectPortableConversationHistory(
-                    persistedHistory,
-                    history,
-                    { localBaseUrl, gatewayBaseUrl },
-                  )
+                  let effectiveHistory: Array<OpenAICompatMessage>
+                  if (useServerSideSession) {
+                    // Server-side session: Hermes loads history from state.db via
+                    // X-Hermes-Session-Id. Send only the new message.
+                    effectiveHistory = [...localeSystemMsg]
+                  } else {
+                    // No gateway key configured — fall back to client-side history replay
+                    // so the workspace degrades gracefully without auth.
+                    effectiveHistory = selectPortableConversationHistory(
+                      persistedHistory,
+                      history,
+                      { localBaseUrl },
+                    )
+                    effectiveHistory = [...localeSystemMsg, ...effectiveHistory]
+                  }
                   const portableMessages: Array<OpenAICompatMessage> = [
-                    ...localeSystemMsg,
                     ...effectiveHistory,
                     {
                       role: 'user',
@@ -738,12 +749,15 @@ export const Route = createFileRoute('/api/send-stream')({
                         : undefined,
                     signal: abortController.signal,
                     stream: true,
-                    // Don't send sessionId when routing direct-to-gateway —
-                    // session continuation auth is not configured on agent
-                    // gateways and the header triggers a 403. History is
-                    // managed locally via getLocalMessages in portable mode.
                     sessionId: gatewayBaseUrl ? undefined : portableSessionKey,
                     baseUrl: gatewayBaseUrl || localBaseUrl,
+                    // Server-side session headers — only on direct gateway path with key
+                    ...(useServerSideSession ? {
+                      extraHeaders: {
+                        'Authorization': `Bearer ${gatewayKey}`,
+                        'X-Hermes-Session-Id': portableSessionKey,
+                      },
+                    } : {}),
                   })
 
                   let thinking = ''
