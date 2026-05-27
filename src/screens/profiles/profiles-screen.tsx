@@ -129,6 +129,71 @@ export function ProfilesScreen() {
   const [descriptionDraft, setDescriptionDraft] = useState('')
   const [savingDescription, setSavingDescription] = useState(false)
 
+  // ── Color picker + avatar upload state ───────────────────────
+  const [colorPickerOpen, setColorPickerOpen] = useState<string | null>(null)
+  const [draftColor, setDraftColor] = useState('')
+  const [savingColor, setSavingColor] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  // Track per-agent cache-buster versions so the img reloads after upload
+  const [avatarVersions, setAvatarVersions] = useState<Record<string, number>>({})
+
+  async function handleSaveColor() {
+    if (!colorPickerOpen || !draftColor.trim()) return
+    setSavingColor(true)
+    try {
+      await postJson(`/api/federation/agents/${colorPickerOpen}/color`, { color: draftColor.trim().toLowerCase() })
+      toast(`Updated accent color for ${colorPickerOpen}`, { type: 'success' })
+      // Refresh the agents.json cache
+      fetch('/agents.json')
+        .then(r => r.json())
+        .then((data: { agents?: Array<{ name: string; color: string }> }) => {
+          const map: {[key: string]: { color: string }} = {}
+          data.agents?.forEach(a => { map[a.name.toLowerCase()] = a })
+          setAgentColors(map)
+        })
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Failed to save color', { type: 'error' })
+    } finally {
+      setSavingColor(false)
+      setColorPickerOpen(null)
+      setDraftColor('')
+    }
+  }
+
+  async function handleAvatarUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    if (!detailsName || !event.target.files?.[0]) return
+    const file = event.target.files[0]
+    if (!file.type.startsWith('image/')) {
+      toast('Please select an image file (JPEG, PNG, or WebP)', { type: 'error' })
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast('Image too large — max 5MB', { type: 'error' })
+      return
+    }
+
+    setUploadingAvatar(true)
+    try {
+      const formData = new FormData()
+      formData.append('avatar', file)
+      const res = await fetch(`/api/federation/agents/${detailsName.toLowerCase()}/avatar`, {
+        method: 'POST',
+        body: formData,
+      })
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}))
+        throw new Error(payload?.error || `Upload failed (${res.status})`)
+      }
+      toast(`Avatar updated for ${detailsName}`, { type: 'success' })
+      setAvatarVersions(prev => ({ ...prev, [detailsName.toLowerCase()]: Date.now() }))
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Failed to upload avatar', { type: 'error' })
+    } finally {
+      setUploadingAvatar(false)
+      event.target.value = ''
+    }
+  }
+
   // ── Skill content modal (Addition D) ────────────────────────
   const [skillModalOpen, setSkillModalOpen] = useState(false)
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
@@ -432,7 +497,7 @@ export function ProfilesScreen() {
                     )}
                   >
                     <img
-                      src="/claude-avatar.webp"
+                      src={`/avatars/${profile.name.toLowerCase()}.jpg${avatarVersions[profile.name.toLowerCase()] ? `?v=${avatarVersions[profile.name.toLowerCase()]}` : ''}`}
                       alt={profile.name}
                       className={cn(
                         'size-20 rounded-full border-2 object-cover',
@@ -445,6 +510,7 @@ export function ProfilesScreen() {
                           ? 'none'
                           : 'grayscale(0.5) brightness(0.9)',
                       }}
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/claude-avatar.webp' }}
                     />
                   </div>
                   {profile.active && (
@@ -465,7 +531,7 @@ export function ProfilesScreen() {
                 {/* Name + provider */}
                 <div className="mt-3 flex items-center justify-center gap-1.5">
                   <h2 className="text-center text-lg font-bold text-primary-900 dark:text-neutral-100">
-                    {agentColors[profile.name.toLowerCase()]?.name || profile.name}
+                    {profile.name}
                   </h2>
                   {agentColors[profile.name.toLowerCase()]?.color && (
                     <span
@@ -961,9 +1027,10 @@ export function ProfilesScreen() {
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <img
-                  src="/claude-avatar.webp"
+                  src={`/avatars/${(detailsName || '').toLowerCase()}.jpg${avatarVersions[(detailsName || '').toLowerCase()] ? `?v=${avatarVersions[(detailsName || '').toLowerCase()]}` : ''}`}
                   alt={detailsName || ''}
                   className="size-12 rounded-full border-2 border-primary-200 object-cover dark:border-neutral-700"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/claude-avatar.webp' }}
                 />
                 <div className="min-w-0">
                   <DialogTitle className="text-base font-semibold">
@@ -1061,6 +1128,82 @@ export function ProfilesScreen() {
                     {JSON.stringify(detailQuery.data.profile.config, null, 2)}
                   </pre>
                 </div>
+
+                {/* ── Customization: accent color + avatar (Addition E) ─── */}
+                {agentColors[(detailQuery.data?.profile?.name || '').toLowerCase()]?.color && (
+                  <div className="rounded-xl border border-primary-200 bg-primary-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/60 space-y-4">
+                    {/* Accent color picker */}
+                    <div>
+                      <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary-500 dark:text-neutral-400">
+                        Accent Color
+                      </div>
+                      {colorPickerOpen === detailsName ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={draftColor}
+                            onChange={(e) => setDraftColor(e.target.value)}
+                            placeholder="#a78bfa"
+                            className="h-9 w-24 rounded-lg border border-primary-200 bg-primary-100/70 px-2.5 text-sm font-mono outline-none focus:border-accent-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+                          />
+                          <div
+                            className="size-9 rounded-lg border border-primary-200 dark:border-neutral-700"
+                            style={{ backgroundColor: draftColor.startsWith('#') ? draftColor : undefined }}
+                          />
+                          <Button size="sm" onClick={() => void handleSaveColor()} disabled={savingColor || !draftColor.trim()}>
+                            {savingColor ? 'Saving…' : 'Save'}
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => { setColorPickerOpen(null); setDraftColor('') }}>
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="size-8 rounded-full border border-primary-200 dark:border-neutral-700"
+                            style={{ backgroundColor: getAccentColor(detailQuery.data?.profile.name) }}
+                          />
+                          <span className="text-sm font-mono text-primary-700 dark:text-neutral-300">
+                            {getAccentColor(detailQuery.data?.profile.name)}
+                          </span>
+                          <Button variant="outline" size="sm" onClick={() => { setColorPickerOpen(detailsName); setDraftColor(getAccentColor(detailQuery.data?.profile.name) || '') }}>
+                            Change
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Avatar upload */}
+                    <div>
+                      <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary-500 dark:text-neutral-400">
+                        Avatar
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={`/avatars/${(detailQuery.data?.profile.name || '').toLowerCase()}.jpg${avatarVersions[(detailQuery.data?.profile.name || '').toLowerCase()] ? `?v=${avatarVersions[(detailQuery.data?.profile.name || '').toLowerCase()]}` : ''}`}
+                          alt={detailQuery.data?.profile.name}
+                          className="size-12 rounded-full border-2 border-primary-200 object-cover dark:border-neutral-700"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/claude-avatar.webp' }}
+                        />
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={handleAvatarUpload}
+                            disabled={uploadingAvatar}
+                            className="sr-only"
+                          />
+                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-primary-100/70 px-3 py-1.5 text-xs font-semibold text-primary-700 transition-colors hover:bg-accent-100 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800">
+                            {uploadingAvatar ? 'Uploading…' : 'Upload new avatar'}
+                          </span>
+                        </label>
+                      </div>
+                      <p className="mt-1.5 text-[10px] text-primary-400 dark:text-neutral-500">
+                        JPEG, PNG, or WebP — max 5MB. Saved as {detailQuery.data?.profile.name.toLowerCase()}.jpg
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* ── Agent detail sections (Addition C) ─────────── */}
                 {agentDetail !== null && agentColors[(detailQuery.data?.profile?.name || '').toLowerCase()]?.color ? (

@@ -1,6 +1,7 @@
 /**
  * Federation roster — fetches live agent status from the workspace's
- * federation proxy and merges it with static metadata from agents.json.
+ * federation proxy and merges it with dynamic color data from agents.json.
+ * Falls back to hardcoded STATIC_AGENTS when the fetch fails.
  *
  * Usage:
  *   const { agents, loading, error } = useAgentRoster();
@@ -8,7 +9,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 
-// ── Static agent metadata (mirrors agents.json) ───────────────────────
+// ── Static agent metadata (fallback when agents.json fetch fails) ────────
 
 export interface AgentStaticConfig {
   name: string
@@ -43,16 +44,39 @@ interface FederationAgentRaw {
   active_agents?: number | null
 }
 
-// ── Fetch function ────────────────────────────────────────────────────
+// ── Fetch functions ────────────────────────────────────────────────────
+
+/** Fetch dynamic color/role data from agents.json. Returns a map keyed by lowercase name. */
+async function fetchAgentsJson(): Promise<Record<string, { color: string; role: string }>> {
+  try {
+    const res = await fetch('/agents.json')
+    if (!res.ok) throw new Error(`agents.json fetch failed: ${res.status}`)
+    const data = (await res.json()) as { agents?: Array<{ name: string; color: string; role: string }> }
+    const map: Record<string, { color: string; role: string }> = {}
+    data.agents?.forEach((a) => {
+      map[a.name.toLowerCase()] = { color: a.color, role: a.role }
+    })
+    return map
+  } catch {
+    // Return empty — caller falls back to STATIC_AGENTS
+    return {}
+  }
+}
 
 export async function fetchAgentRoster(): Promise<AgentInfo[]> {
-  const res = await fetch('/api/federation-agents')
-  if (!res.ok) {
-    throw new Error(`Federation roster fetch failed: ${res.status}`)
-  }
-  const data = (await res.json()) as { agents?: FederationAgentRaw[] }
+  const [rosterRes, agentsJsonMap] = await Promise.all([
+    fetch('/api/federation-agents').then((r) => r.json()),
+    fetchAgentsJson(),
+  ])
 
-  return (data.agents ?? []).map((raw) => {
+  if (!rosterRes || !rosterRes.agents) {
+    throw new Error('Federation roster fetch failed: no agents data')
+  }
+
+  return (rosterRes.agents as FederationAgentRaw[]).map((raw) => {
+    const lower = raw.name.toLowerCase()
+    // Prefer dynamic data from agents.json, fall back to hardcoded STATIC_AGENTS
+    const dynamicInfo = agentsJsonMap[lower]
     const staticInfo = STATIC_AGENTS[raw.name] || {
       name: raw.name,
       role: 'Unknown',
@@ -63,8 +87,8 @@ export async function fetchAgentRoster(): Promise<AgentInfo[]> {
     return {
       name: raw.name,
       port: raw.port,
-      role: staticInfo.role,
-      color: staticInfo.color,
+      role: dynamicInfo?.role ?? staticInfo.role,
+      color: dynamicInfo?.color ?? staticInfo.color,
       status: (raw.status === 'ok' ? 'ok' : 'unreachable') as AgentInfo['status'],
       active_agents: raw.active_agents ?? null,
     }
