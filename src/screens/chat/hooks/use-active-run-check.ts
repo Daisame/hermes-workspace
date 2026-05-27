@@ -62,10 +62,24 @@ export function useActiveRunCheck({
           `/api/sessions/${encodeURIComponent(sessionKey)}/active-run`,
           { signal: controller.signal },
         )
-        if (!response.ok) return
+        if (!response.ok) {
+          // API error — defensively clear any stale waiting state so the
+          // ghost thinking indicator doesn't appear after the protection guard lifts
+          const store = useChatStore.getState()
+          if (store.isSessionWaiting(sessionKey)) {
+            store.clearSessionWaiting(sessionKey)
+          }
+          return
+        }
 
         const data = (await response.json()) as ActiveRunResponse
-        if (!data.ok) return
+        if (!data.ok) {
+          const store = useChatStore.getState()
+          if (store.isSessionWaiting(sessionKey)) {
+            store.clearSessionWaiting(sessionKey)
+          }
+          return
+        }
 
         const store = useChatStore.getState()
         if (data.run && ACTIVE_STATUSES.has(data.run.status)) {
@@ -75,7 +89,16 @@ export function useActiveRunCheck({
           store.clearSessionWaiting(sessionKey)
         }
       } catch {
-        // Network error or abort — ignore
+        // Network error — clear stale waiting state defensively;
+        // the ghost must not appear just because an API check failed
+        try {
+          const store = useChatStore.getState()
+          if (store.isSessionWaiting(sessionKey)) {
+            store.clearSessionWaiting(sessionKey)
+          }
+        } catch {
+          // ignore secondary errors
+        }
       } finally {
         onCompleteRef.current?.()
       }

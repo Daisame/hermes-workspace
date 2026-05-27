@@ -2,6 +2,28 @@
 
 import { memo, useCallback, useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
+
+/** One-time fetch of the selected agent's accent color from agents.json */
+function useAgentAccentColor(): string {
+  const [color, setColor] = useState('')
+  useEffect(() => {
+    const name =
+      typeof localStorage !== 'undefined'
+        ? (localStorage.getItem('locus-selected-agent') ?? '')
+        : ''
+    if (!name) return
+    fetch('/agents.json')
+      .then((r) => r.json())
+      .then((data: { agents?: Array<{ name: string; color: string }> }) => {
+        const match = data.agents?.find(
+          (a) => a.name.toLowerCase() === name.toLowerCase(),
+        )
+        if (match?.color) setColor(match.color)
+      })
+      .catch(() => {})
+  }, [])
+  return color
+}
 import {
   PreviewCard,
   PreviewCardPopup,
@@ -82,6 +104,7 @@ function ContextBarComponent({
     return () => clearTimeout(id)
   }, [showLabel])
 
+  const agentColor = useAgentAccentColor()
   const pct = ctx.contextPercent
   const clampedPct = Math.min(Math.max(pct, 0), 100)
 
@@ -90,6 +113,7 @@ function ContextBarComponent({
   const isCritical = clampedPct > 90
   const isDanger = clampedPct >= 75 && clampedPct <= 90
   const isWarning = clampedPct >= 50 && clampedPct < 75
+  const useStatusColor = isCritical || isDanger || isWarning
 
   const barColor = isCritical
     ? 'bg-red-500'
@@ -97,7 +121,7 @@ function ContextBarComponent({
       ? 'bg-orange-500'
       : isWarning
         ? 'bg-yellow-400'
-        : 'bg-emerald-500'
+        : ''
 
   const barBg = isCritical
     ? 'bg-red-100'
@@ -105,7 +129,15 @@ function ContextBarComponent({
       ? 'bg-orange-100'
       : isWarning
         ? 'bg-yellow-100'
-        : 'bg-emerald-100'
+        : ''
+
+  // When context is healthy, use the selected agent's color
+  const barFillStyle = !useStatusColor && agentColor
+    ? { backgroundColor: agentColor }
+    : undefined
+  const barBgStyle = !useStatusColor && agentColor
+    ? { backgroundColor: `${agentColor}22` }
+    : undefined
 
   const textColor = isCritical
     ? 'text-red-600'
@@ -126,13 +158,13 @@ function ContextBarComponent({
           aria-label={`Context: ${Math.round(clampedPct)}% used`}
         />
         {/* Bar — always 3px, never moves */}
-        <div className={cn('w-full h-[3px]', barBg)}>
+        <div className={cn('w-full h-[3px]', barBg)} style={barBgStyle}>
           <div
             className={cn(
               'h-full transition-all duration-700 ease-out',
               barColor,
             )}
-            style={{ width: `${clampedPct}%` }}
+            style={{ width: `${clampedPct}%`, ...barFillStyle }}
           />
         </div>
         {/* Label floats below bar on tap */}
@@ -158,13 +190,14 @@ function ContextBarComponent({
             'shrink-0 w-full h-2 transition-colors duration-300 relative',
             barBg,
           )}
+          style={barBgStyle}
         >
           <div
             className={cn(
               'h-full transition-all duration-700 ease-out',
               barColor,
             )}
-            style={{ width: `${clampedPct}%` }}
+            style={{ width: `${clampedPct}%`, ...barFillStyle }}
           />
           {/* % shown on hover via popup only */}
         </div>
