@@ -223,7 +223,7 @@ export function ProfilesScreen() {
   // ── Hermes Hub collapsed state ────────────────────────────────
   const [hermesHubExpanded, setHermesHubExpanded] = useState(false)
 
-  const sorted = useMemo(() => profiles, [profiles])
+  const sorted = useMemo(() => profiles.filter(p => p.name.toLowerCase() !== 'default'), [profiles])
 
   async function refreshProfiles() {
     await queryClient.invalidateQueries({ queryKey: ['profiles'] })
@@ -559,14 +559,31 @@ export function ProfilesScreen() {
             </article>
           )
         })}
-      </div>
 
-      {sorted.length === 0 && !profilesQuery.isLoading ? (
-        <div className="rounded-2xl border border-dashed border-primary-200 bg-primary-50/70 p-8 text-center text-sm text-primary-600">
-          No named profiles found yet. The active profile is{' '}
-          <span className="font-semibold">{activeProfile}</span>.
-        </div>
-      ) : null}
+        {/* ── Add New Agent card ──────────────────────────── */}
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="group relative overflow-hidden rounded-2xl border-2 border-dashed border-primary-200 bg-primary-50/40 shadow-sm transition-all hover:border-accent-400 hover:bg-primary-50 dark:border-neutral-700 dark:bg-neutral-950/40 dark:hover:border-accent-500 dark:hover:bg-neutral-900/60 flex flex-col items-center justify-center gap-3 min-h-[280px] cursor-pointer"
+        >
+          <div className="flex size-16 items-center justify-center rounded-full border-2 border-dashed border-primary-200 bg-primary-100/60 transition-colors group-hover:border-accent-400 group-hover:bg-accent-50 dark:border-neutral-700 dark:bg-neutral-900/60 dark:group-hover:border-accent-500 dark:group-hover:bg-accent-900/20">
+            <HugeiconsIcon
+              icon={Add01Icon}
+              size={28}
+              strokeWidth={1.5}
+              className="text-primary-400 transition-colors group-hover:text-accent-500 dark:text-neutral-500"
+            />
+          </div>
+          <div className="text-center px-4">
+            <p className="text-sm font-semibold text-primary-600 transition-colors group-hover:text-accent-600 dark:text-neutral-400 dark:group-hover:text-accent-400">
+              Add New Agent
+            </p>
+            <p className="mt-1 text-xs text-primary-400 dark:text-neutral-600">
+              Set up a new Hermes agent profile
+            </p>
+          </div>
+        </button>
+      </div>
 
       {/* ── Create dialog (unchanged) ─────────────────────── */}
       <DialogRoot

@@ -149,6 +149,7 @@ type NavItemDef = {
   active: boolean
   onClick?: () => void
   disabled?: boolean
+  dimmed?: boolean
   badge?: 'error-dot' | string | number
   dataTour?: string
 }
@@ -185,6 +186,7 @@ function NavItem({
     item.active
       ? 'bg-accent-500/10 text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-900/300/15'
       : 'text-primary-900 hover:bg-primary-200 dark:hover:bg-primary-800',
+    item.dimmed && !item.active ? 'opacity-40' : '',
   )
 
   const iconEl =
@@ -856,6 +858,7 @@ function ChatSidebarComponent({
       icon: BrainIcon,
       label: t('nav.memory'),
       active: isMemoryActive,
+      dimmed: true,
     },
     {
       kind: 'link',
@@ -863,6 +866,7 @@ function ChatSidebarComponent({
       icon: PuzzleIcon,
       label: t('nav.skills'),
       active: isSkillsActive,
+      dimmed: true,
       dataTour: 'skills',
     },
     {
