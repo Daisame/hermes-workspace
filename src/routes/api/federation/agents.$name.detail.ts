@@ -62,15 +62,29 @@ function listSkillsRecursive(dirPath: string): SkillEntry[] {
       }
 
       // Recurse into subdirectories
-      results.push(...listSkillsRecursive(entryPath).map((child) => ({
-        ...child,
-        relativePath: path.join(entry.name, child.relativePath),
-      })) as SkillEntry[])
+      results.push(...listSkillsRecursive(entryPath).map((child) => {
+        const fullPath = path.join(entry.name, child.relativePath)
+        return {
+          ...child,
+          relativePath: fullPath,
+          category: fullPath.includes(path.sep) ? fullPath.split(path.sep)[0] : null,
+        }
+      })) as SkillEntry[]
     }
 
     return results.sort((a, b) => a.name.localeCompare(b.name))
   } catch {
     return []
+  }
+}
+
+/** Check if a SKILL.md has Hermes hub frontmatter signature. */
+function isHermesHubSkill(skillMdPath: string): boolean {
+  try {
+    const content = fs.readFileSync(skillMdPath, 'utf-8')
+    return /^metadata:\s*\n\s+hermes:/m.test(content)
+  } catch {
+    return false
   }
 }
 
@@ -109,7 +123,9 @@ export const Route = createFileRoute('/api/federation/agents/$name/detail')({
         const hermes: SkillEntry[] = []
         const custom: SkillEntry[] = []
         for (const skill of allLocalSkills) {
-          if (globalSet.has(skill.relativePath)) {
+          const skillMdPath = path.join(localSkillsDir, skill.relativePath, 'SKILL.md')
+          const hubByFrontmatter = isHermesHubSkill(skillMdPath)
+          if (hubByFrontmatter || globalSet.has(skill.relativePath)) {
             hermes.push(skill)
           } else {
             custom.push(skill)

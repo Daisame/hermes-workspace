@@ -211,6 +211,7 @@ export function ProfilesScreen() {
     const lower = detailsName.toLowerCase()
     const validAgents = ['nyx', 'lyra', 'alethea', 'cora', 'aether']
     if (!validAgents.includes(lower)) { setAgentDetail(null); return }
+    setHermesHubExpanded(false)
     setDetailLoading(true)
     fetch(`/api/federation/agents/${lower}/detail`)
       .then(r => r.json())
