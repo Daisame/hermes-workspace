@@ -17,6 +17,9 @@ function getProfilesRoot(): string {
 }
 
 const SHARED_SKILLS_ROOT = '/opt/ai/agents/shared/skills'
+const HERMES_GLOBAL_SKILLS_ROOT = path.join(
+  process.env.HOME || '/home/mako', '.hermes', 'skills'
+)
 
 function readOptionalFile(filePath: string): string | null {
   try {
@@ -27,19 +30,54 @@ function readOptionalFile(filePath: string): string | null {
   }
 }
 
-function listSkillDirs(dirPath: string): string[] {
+interface SkillEntry {
+  name: string
+  relativePath: string
+  category: string | null
+}
+
+/** Recursively find all directories containing SKILL.md at any depth. */
+function listSkillsRecursive(dirPath: string): SkillEntry[] {
   try {
     if (!fs.existsSync(dirPath)) return []
+
     const entries = fs.readdirSync(dirPath, { withFileTypes: true })
-    return entries
-      .filter(
-        (e) => e.isDirectory() && fs.existsSync(path.join(dirPath, e.name, 'SKILL.md')),
-      )
-      .map((e) => e.name)
-      .sort()
+    const results: SkillEntry[] = []
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue
+      const entryPath = path.join(dirPath, entry.name)
+
+      // Check direct SKILL.md in this directory
+      const skillMdPath = path.join(entryPath, 'SKILL.md')
+      if (fs.existsSync(skillMdPath)) {
+        const relativePath = path.relative(dirPath, entryPath)
+        const parts = relativePath.split(path.sep)
+        results.push({
+          name: entry.name,
+          relativePath,
+          category: parts.length > 1 ? parts[0] : null,
+        })
+        continue
+      }
+
+      // Recurse into subdirectories
+      results.push(...listSkillsRecursive(entryPath).map((child) => ({
+        ...child,
+        relativePath: path.join(entry.name, child.relativePath),
+      })) as SkillEntry[])
+    }
+
+    return results.sort((a, b) => a.name.localeCompare(b.name))
   } catch {
     return []
   }
+}
+
+/** Build a Set of relative paths from the global Hermes skills directory. */
+function buildGlobalSkillSet(): Set<string> {
+  const globalSkills = listSkillsRecursive(HERMES_GLOBAL_SKILLS_ROOT)
+  return new Set(globalSkills.map((s) => s.relativePath))
 }
 
 export const Route = createFileRoute('/api/federation/agents/$name/detail')({
@@ -64,13 +102,28 @@ export const Route = createFileRoute('/api/federation/agents/$name/detail')({
         const soulPath = path.join(profileDir, 'SOUL.md')
         const memoryPath = path.join(profileDir, 'memories', 'MEMORY.md')
 
+        // Collect all local skills recursively
+        const allLocalSkills = listSkillsRecursive(localSkillsDir)
+        const globalSet = buildGlobalSkillSet()
+
+        const hermes: SkillEntry[] = []
+        const custom: SkillEntry[] = []
+        for (const skill of allLocalSkills) {
+          if (globalSet.has(skill.relativePath)) {
+            hermes.push(skill)
+          } else {
+            custom.push(skill)
+          }
+        }
+
         return json({
           ok: true,
           soul: readOptionalFile(soulPath),
           memory: readOptionalFile(memoryPath),
           skills: {
-            local: listSkillDirs(localSkillsDir),
-            shared: listSkillDirs(SHARED_SKILLS_ROOT),
+            hermes,
+            custom,
+            shared: listSkillsRecursive(SHARED_SKILLS_ROOT),
           },
         })
       },

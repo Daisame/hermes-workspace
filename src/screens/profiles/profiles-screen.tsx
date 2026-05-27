@@ -11,6 +11,7 @@ import {
   Edit02Icon,
   Folder01Icon,
   Key01Icon,
+  CircleLock01Icon,
   SparklesIcon,
   UserGroupIcon,
 } from '@hugeicons/core-free-icons'
@@ -45,6 +46,12 @@ type ProfileDetail = {
   hasEnv: boolean
   sessionsDir?: string
   skillsDir?: string
+}
+
+interface SkillEntry {
+  name: string
+  relativePath: string
+  category: string | null
 }
 
 async function readJson<T>(url: string): Promise<T> {
@@ -126,20 +133,20 @@ export function ProfilesScreen() {
   const [skillModalOpen, setSkillModalOpen] = useState(false)
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
   const [selectedSkillName, setSelectedSkillName] = useState<string | null>(null)
-  const [skillScope, setSkillScope] = useState<'local' | 'shared'>('local')
+  const [skillScope, setSkillScope] = useState<'local' | 'shared' | 'hermes'>('local')
   const [skillContent, setSkillContent] = useState<string | null>(null)
   const [skillLoading, setSkillLoading] = useState(false)
 
-  async function openSkillModal(agent: string, skillName: string, scope: 'local' | 'shared') {
+  async function openSkillModal(agent: string, skillPath: string, scope: 'local' | 'shared' | 'hermes') {
     setSelectedAgent(agent)
-    setSelectedSkillName(skillName)
+    setSelectedSkillName(skillPath.split('/').pop() || skillPath)
     setSkillScope(scope)
     setSkillContent(null)
     setSkillLoading(true)
     setSkillModalOpen(true)
     try {
       const res = await fetch(
-        `/api/federation/agents/${encodeURIComponent(agent)}/skill/read?skillName=${encodeURIComponent(skillName)}&scope=${scope}`,
+        `/api/federation/agents/${encodeURIComponent(agent)}/skill/read?skillPath=${encodeURIComponent(skillPath)}&scope=${scope}`,
       )
       if (res.ok) {
         const data = await res.json()
@@ -196,7 +203,7 @@ export function ProfilesScreen() {
   }, [rosterAgents])
 
   // ── Agent detail data for drawer (Addition C) ───────────────────
-  const [agentDetail, setAgentDetail] = useState<{soul: string|null; memory: string|null; skills: {local: string[]; shared: string[]}} | null>(null)
+  const [agentDetail, setAgentDetail] = useState<{soul: string|null; memory: string|null; skills: {hermes: SkillEntry[]; custom: SkillEntry[]; shared: SkillEntry[]}} | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
 
   useEffect(() => {
@@ -211,6 +218,9 @@ export function ProfilesScreen() {
       .catch(() => setAgentDetail(null))
       .finally(() => setDetailLoading(false))
   }, [detailsName])
+
+  // ── Hermes Hub collapsed state ────────────────────────────────
+  const [hermesHubExpanded, setHermesHubExpanded] = useState(false)
 
   const sorted = useMemo(() => profiles, [profiles])
 
@@ -364,6 +374,10 @@ export function ProfilesScreen() {
     }
   }
 
+  // ── Accent color helper ────────────────────────────────────────
+  const getAccentColor = (agentName?: string): string | undefined =>
+    agentName ? agentColors[agentName.toLowerCase()]?.color : undefined
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 md:px-6">
       <div className="flex flex-col gap-3 rounded-2xl border border-primary-200 bg-primary-50/80 p-4 shadow-sm md:flex-row md:items-center md:justify-between">
@@ -373,7 +387,7 @@ export function ProfilesScreen() {
             <h1 className="text-lg font-semibold text-primary-900">Profiles</h1>
           </div>
           <p className="mt-1 text-sm text-primary-600">
-            Browse and manage Hermes profiles stored under{' '}
+            Browse and manage Hermes profiles stored in{' '}
             <span className="font-mono">~/.hermes/profiles</span>.
           </p>
         </div>
@@ -553,6 +567,7 @@ export function ProfilesScreen() {
         </div>
       ) : null}
 
+      {/* ── Create dialog (unchanged) ─────────────────────── */}
       <DialogRoot
         open={createOpen}
         onOpenChange={(open) => {
@@ -842,6 +857,7 @@ export function ProfilesScreen() {
         </DialogContent>
       </DialogRoot>
 
+      {/* ── Rename dialog (unchanged) ───────────────────── */}
       <DialogRoot
         open={Boolean(renameTarget)}
         onOpenChange={(open) => {
@@ -916,6 +932,7 @@ export function ProfilesScreen() {
         </DialogContent>
       </DialogRoot>
 
+      {/* ── Details dialog with updated Skills section ──────── */}
       <DialogRoot
         open={Boolean(detailsName)}
         onOpenChange={(open) => !open && setDetailsName(null)}
@@ -1058,45 +1075,91 @@ export function ProfilesScreen() {
                       )}
                     </div>
 
-                    {/* Skills section */}
+                    {/* ── Skills section — three tiers ─────────────── */}
                     <div className="rounded-xl border border-primary-200 bg-primary-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">
                       <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary-500 dark:text-neutral-400">
                         Skills
                       </div>
-                      {(agentDetail.skills.local.length > 0 || agentDetail.skills.shared.length > 0) ? (
-                        <div className="space-y-2">
-                          {agentDetail.skills.local.length > 0 && (
+
+                      {agentDetail.skills.custom.length > 0 || agentDetail.skills.shared.length > 0 || agentDetail.skills.hermes.length > 0 ? (
+                        <div className="space-y-3">
+                          {/* 1. Custom Skills — first, accent color */}
+                          {agentDetail.skills.custom.length > 0 && (
                             <div>
-                              <div className="text-[10px] font-semibold uppercase tracking-wider text-primary-400 dark:text-neutral-500 mb-1.5">Agent Skills</div>
+                              <div className="flex items-center gap-1.5 mb-1.5">
+                                <HugeiconsIcon icon={Edit02Icon} size={12} strokeWidth={1.8} className="text-primary-400 dark:text-neutral-500" />
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-primary-400 dark:text-neutral-500">Custom Skills</span>
+                              </div>
+                              <p className="mb-1.5 text-[10px] text-primary-300 dark:text-neutral-600">{agentDetail.skills.custom.length} agent-specific</p>
                               <div className="flex flex-wrap gap-1.5">
-                                {agentDetail.skills.local.map(s => (
+                                {agentDetail.skills.custom.map((s) => (
                                   <button
-                                    key={s}
+                                    key={s.relativePath}
                                     type="button"
-                                    onClick={() => detailsName && void openSkillModal(detailsName, s, 'local')}
-                                    className="inline-flex items-center rounded-md bg-primary-200/70 px-2 py-0.5 text-[11px] font-medium text-primary-800 transition-colors hover:bg-accent-200 dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
+                                    onClick={() => detailsName && void openSkillModal(detailsName, s.relativePath, 'local')}
+                                    className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium transition-colors cursor-pointer border border-transparent"
+                                    style={{
+                                      backgroundColor: `${getAccentColor(detailQuery.data?.profile.name)}22`,
+                                      color: getAccentColor(detailQuery.data?.profile.name) || 'inherit',
+                                    }}
                                   >
-                                    {s}
+                                    {s.category ? `${s.category}/${s.name}` : s.name}
                                   </button>
                                 ))}
                               </div>
                             </div>
                           )}
+
+                          {/* 2. Shared Pool — second, neutral */}
                           {agentDetail.skills.shared.length > 0 && (
                             <div>
-                              <div className="text-[10px] font-semibold uppercase tracking-wider text-primary-400 dark:text-neutral-500 mb-1.5">Shared Pool</div>
+                              <div className="flex items-center gap-1.5 mb-1.5">
+                                <HugeiconsIcon icon={UserGroupIcon} size={12} strokeWidth={1.8} className="text-primary-400 dark:text-neutral-500" />
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-primary-400 dark:text-neutral-500">Shared Pool</span>
+                              </div>
+                              <p className="mb-1.5 text-[10px] text-primary-300 dark:text-neutral-600">{agentDetail.skills.shared.length} shared across agents</p>
                               <div className="flex flex-wrap gap-1.5">
-                                {agentDetail.skills.shared.map(s => (
+                                {agentDetail.skills.shared.map((s) => (
                                   <button
-                                    key={s}
+                                    key={s.relativePath}
                                     type="button"
-                                    onClick={() => detailsName && void openSkillModal(detailsName, s, 'shared')}
+                                    onClick={() => detailsName && void openSkillModal(detailsName, s.relativePath, 'shared')}
                                     className="inline-flex items-center rounded-md bg-primary-200/70 px-2 py-0.5 text-[11px] font-medium text-primary-800 transition-colors hover:bg-accent-200 dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
                                   >
-                                    {s}
+                                    {s.category ? `${s.category}/${s.name}` : s.name}
                                   </button>
                                 ))}
                               </div>
+                            </div>
+                          )}
+
+                          {/* 3. Hermes Hub — third, collapsed by default */}
+                          {agentDetail.skills.hermes.length > 0 && (
+                            <div>
+                              <button
+                                type="button"
+                                onClick={() => setHermesHubExpanded(!hermesHubExpanded)}
+                                className="flex items-center gap-1.5 mb-1.5 cursor-pointer"
+                              >
+                                <HugeiconsIcon icon={CircleLock01Icon} size={12} strokeWidth={1.8} className="text-primary-400 dark:text-neutral-500" />
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-primary-400 dark:text-neutral-500">Hermes Hub</span>
+                              </button>
+                              <p className="mb-1.5 text-[10px] text-primary-300 dark:text-neutral-600">{agentDetail.skills.hermes.length} built-in · managed by Hermes</p>
+                              {hermesHubExpanded && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {agentDetail.skills.hermes.map((s) => (
+                                    <button
+                                      key={s.relativePath}
+                                      type="button"
+                                      onClick={() => detailsName && void openSkillModal(detailsName, s.relativePath, 'hermes')}
+                                      className="inline-flex items-center gap-1 rounded-md bg-neutral-200/50 px-2 py-0.5 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-300/70 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 cursor-pointer"
+                                    >
+                                      <HugeiconsIcon icon={CircleLock01Icon} size={9} strokeWidth={2} className="text-neutral-400 dark:text-neutral-600 shrink-0" />
+                                      {s.category ? `${s.category}/${s.name}` : s.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1104,6 +1167,7 @@ export function ProfilesScreen() {
                         <p className="text-sm text-primary-400 dark:text-neutral-500">No skills configured</p>
                       )}
                     </div>
+
                   </>
                 ) : null}
 
@@ -1149,7 +1213,11 @@ export function ProfilesScreen() {
               {selectedSkillName || 'Skill'}
             </DialogTitle>
             <p className="mt-0.5 text-xs text-primary-500 dark:text-neutral-400">
-              {(skillScope === 'local' ? `Agent skill · ${selectedAgent}` : `Shared pool`)}
+              {skillScope === 'hermes'
+                ? `Hermes Hub · built-in`
+                : skillScope === 'local'
+                  ? `Agent skill · ${selectedAgent}`
+                  : `Shared pool`}
             </p>
           </div>
 

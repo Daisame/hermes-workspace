@@ -160,6 +160,8 @@ import { Route as ApiSessionsSessionKeyActiveRunRouteImport } from './routes/api
 import { Route as ApiMcpHubSourcesIdRouteImport } from './routes/api/mcp/hub-sources.$id'
 import { Route as ApiMcpNameLogsRouteImport } from './routes/api/mcp/$name.logs'
 import { Route as ApiHermesworldReservationsConfirmRouteImport } from './routes/api/hermesworld/reservations/confirm'
+import { Route as ApiFederationAgentsNameDetailRouteImport } from './routes/api/federation/agents.$name.detail'
+import { Route as ApiFederationAgentsNameSkillReadRouteImport } from './routes/api/federation/agents.$name.skill.read'
 
 const WorldRoute = WorldRouteImport.update({
   id: '/world',
@@ -921,6 +923,18 @@ const ApiHermesworldReservationsConfirmRoute =
     path: '/confirm',
     getParentRoute: () => ApiHermesworldReservationsRoute,
   } as any)
+const ApiFederationAgentsNameDetailRoute =
+  ApiFederationAgentsNameDetailRouteImport.update({
+    id: '/api/federation/agents/$name/detail',
+    path: '/api/federation/agents/$name/detail',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiFederationAgentsNameSkillReadRoute =
+  ApiFederationAgentsNameSkillReadRouteImport.update({
+    id: '/api/federation/agents/$name/skill/read',
+    path: '/api/federation/agents/$name/skill/read',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -1074,6 +1088,8 @@ export interface FileRoutesByFullPath {
   '/api/mcp/hub-sources/$id': typeof ApiMcpHubSourcesIdRoute
   '/api/sessions/$sessionKey/active-run': typeof ApiSessionsSessionKeyActiveRunRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
+  '/api/federation/agents/$name/detail': typeof ApiFederationAgentsNameDetailRoute
+  '/api/federation/agents/$name/skill/read': typeof ApiFederationAgentsNameSkillReadRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1226,6 +1242,8 @@ export interface FileRoutesByTo {
   '/api/mcp/hub-sources/$id': typeof ApiMcpHubSourcesIdRoute
   '/api/sessions/$sessionKey/active-run': typeof ApiSessionsSessionKeyActiveRunRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
+  '/api/federation/agents/$name/detail': typeof ApiFederationAgentsNameDetailRoute
+  '/api/federation/agents/$name/skill/read': typeof ApiFederationAgentsNameSkillReadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1380,6 +1398,8 @@ export interface FileRoutesById {
   '/api/mcp/hub-sources/$id': typeof ApiMcpHubSourcesIdRoute
   '/api/sessions/$sessionKey/active-run': typeof ApiSessionsSessionKeyActiveRunRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
+  '/api/federation/agents/$name/detail': typeof ApiFederationAgentsNameDetailRoute
+  '/api/federation/agents/$name/skill/read': typeof ApiFederationAgentsNameSkillReadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1535,6 +1555,8 @@ export interface FileRouteTypes {
     | '/api/mcp/hub-sources/$id'
     | '/api/sessions/$sessionKey/active-run'
     | '/api/sessions/$sessionKey/status'
+    | '/api/federation/agents/$name/detail'
+    | '/api/federation/agents/$name/skill/read'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1687,6 +1709,8 @@ export interface FileRouteTypes {
     | '/api/mcp/hub-sources/$id'
     | '/api/sessions/$sessionKey/active-run'
     | '/api/sessions/$sessionKey/status'
+    | '/api/federation/agents/$name/detail'
+    | '/api/federation/agents/$name/skill/read'
   id:
     | '__root__'
     | '/'
@@ -1840,6 +1864,8 @@ export interface FileRouteTypes {
     | '/api/mcp/hub-sources/$id'
     | '/api/sessions/$sessionKey/active-run'
     | '/api/sessions/$sessionKey/status'
+    | '/api/federation/agents/$name/detail'
+    | '/api/federation/agents/$name/skill/read'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1964,6 +1990,8 @@ export interface RootRouteChildren {
   ApiUpdateAgentRoute: typeof ApiUpdateAgentRoute
   ApiUpdateStatusRoute: typeof ApiUpdateStatusRoute
   ApiUpdateWorkspaceRoute: typeof ApiUpdateWorkspaceRoute
+  ApiFederationAgentsNameDetailRoute: typeof ApiFederationAgentsNameDetailRoute
+  ApiFederationAgentsNameSkillReadRoute: typeof ApiFederationAgentsNameSkillReadRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -3025,6 +3053,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHermesworldReservationsConfirmRouteImport
       parentRoute: typeof ApiHermesworldReservationsRoute
     }
+    '/api/federation/agents/$name/detail': {
+      id: '/api/federation/agents/$name/detail'
+      path: '/api/federation/agents/$name/detail'
+      fullPath: '/api/federation/agents/$name/detail'
+      preLoaderRoute: typeof ApiFederationAgentsNameDetailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/federation/agents/$name/skill/read': {
+      id: '/api/federation/agents/$name/skill/read'
+      path: '/api/federation/agents/$name/skill/read'
+      fullPath: '/api/federation/agents/$name/skill/read'
+      preLoaderRoute: typeof ApiFederationAgentsNameSkillReadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -3360,6 +3402,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiUpdateAgentRoute: ApiUpdateAgentRoute,
   ApiUpdateStatusRoute: ApiUpdateStatusRoute,
   ApiUpdateWorkspaceRoute: ApiUpdateWorkspaceRoute,
+  ApiFederationAgentsNameDetailRoute: ApiFederationAgentsNameDetailRoute,
+  ApiFederationAgentsNameSkillReadRoute: ApiFederationAgentsNameSkillReadRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

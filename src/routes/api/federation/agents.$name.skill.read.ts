@@ -1,10 +1,11 @@
 /**
  * Skill content endpoint — reads SKILL.md for a named agent skill.
- * Supports both local agent skills (~/.hermes/profiles/<name>/skills/) and
- * shared pool skills (/opt/ai/agents/shared/skills/). The `scope` query param
- * selects which: 'local' (default) or 'shared'. Returns 404 if not found.
+ * Supports three scopes: 'local' (agent profile, default), 'shared'
+ * (/opt/ai/agents/shared/skills/), and 'hermes' (~/.hermes/skills/).
+ * Accepts either `skillName` (searches recursively) or `skillPath`
+ * (direct relative path like "creative/comfyui") query parameters.
  */
-import fs from 'node:fs'
+import fs, { Dirent } from 'node:fs'
 import path from 'node:path'
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
@@ -18,6 +19,9 @@ function getProfilesRoot(): string {
 }
 
 const SHARED_SKILLS_ROOT = '/opt/ai/agents/shared/skills'
+const HERMES_GLOBAL_SKILLS_ROOT = path.join(
+  process.env.HOME || '/home/mako', '.hermes', 'skills'
+)
 
 export const Route = createFileRoute(
   '/api/federation/agents/$name/skill/read',
@@ -38,10 +42,11 @@ export const Route = createFileRoute(
         }
 
         const url = new URL(request.url)
+        const skillPath = url.searchParams.get('skillPath')
         const skillName = url.searchParams.get('skillName')
-        if (!skillName) {
+        if (!skillPath && !skillName) {
           return json(
-            { ok: false, error: 'Missing skillName query parameter' },
+            { ok: false, error: 'Missing skillPath or skillName query parameter' },
             { status: 400 },
           )
         }
@@ -52,52 +57,69 @@ export const Route = createFileRoute(
         let skillsDir: string
         if (scope === 'shared') {
           skillsDir = SHARED_SKILLS_ROOT
+        } else if (scope === 'hermes') {
+          skillsDir = HERMES_GLOBAL_SKILLS_ROOT
         } else {
           const profileDir = path.join(getProfilesRoot(), name)
           skillsDir = path.join(profileDir, 'skills')
         }
 
-        // Find the SKILL.md — skill dirs may be nested (e.g. category/skill-name/SKILL.md)
-        let skillPath: string | null = null
-        try {
-          if (!fs.existsSync(skillsDir)) return json({ ok: false, error: 'Skills directory not found' }, { status: 404 })
-
-          const entries = fs.readdirSync(skillsDir, { withFileTypes: true })
-          for (const entry of entries) {
-            // Direct child: skills/<skillName>/SKILL.md
-            if (entry.isDirectory()) {
-              const directSkillMd = path.join(skillsDir, entry.name, 'SKILL.md')
-              if (entry.name === skillName && fs.existsSync(directSkillMd)) {
-                skillPath = directSkillMd
-                break
-              }
-              // Nested category: skills/<category>/<skillName>/SKILL.md
-              const nestedEntries = fs.readdirSync(path.join(skillsDir, entry.name), { withFileTypes: true })
-              for (const nested of nestedEntries) {
-                if (nested.isDirectory() && nested.name === skillName) {
-                  const nestedSkillMd = path.join(skillsDir, entry.name, nested.name, 'SKILL.md')
-                  if (fs.existsSync(nestedSkillMd)) {
-                    skillPath = nestedSkillMd
-                    break
-                  }
-                }
-              }
+        // If skillPath provided, resolve directly — skip search loop
+        let resolvedSkillPath: string | null = null
+        if (skillPath && skillPath.trim()) {
+          const candidate = path.join(skillsDir, skillPath.trim(), 'SKILL.md')
+          try {
+            if (fs.existsSync(candidate)) {
+              resolvedSkillPath = candidate
             }
-            if (skillPath) break
-          }
-        } catch {
-          return json({ ok: false, error: 'Failed to read skills directory' }, { status: 500 })
+          } catch {/* fall through to search */}
         }
 
-        if (!skillPath) {
+        // Fallback: search by skillName (existing behavior)
+        if (!resolvedSkillPath && skillName) {
+          try {
+            if (!fs.existsSync(skillsDir)) return json({ ok: false, error: 'Skills directory not found' }, { status: 404 })
+
+            const entries: Dirent[] = fs.readdirSync(skillsDir, { withFileTypes: true })
+            for (const entry of entries) {
+              // Direct child: skills/<skillName>/SKILL.md
+              if (entry.isDirectory()) {
+                const directSkillMd = path.join(skillsDir, entry.name, 'SKILL.md')
+                if (entry.name === skillName && fs.existsSync(directSkillMd)) {
+                  resolvedSkillPath = directSkillMd
+                  break
+                }
+                // Nested category: skills/<category>/<skillName>/SKILL.md
+                try {
+                  const nestedEntries: Dirent[] = fs.readdirSync(path.join(skillsDir, entry.name), { withFileTypes: true })
+                  for (const nested of nestedEntries) {
+                    if (nested.isDirectory() && nested.name === skillName) {
+                      const nestedSkillMd = path.join(skillsDir, entry.name, nested.name, 'SKILL.md')
+                      if (fs.existsSync(nestedSkillMd)) {
+                        resolvedSkillPath = nestedSkillMd
+                        break
+                      }
+                    }
+                  }
+                } catch {/* skip unreadable dirs */}
+              }
+              if (resolvedSkillPath) break
+            }
+          } catch {
+            return json({ ok: false, error: 'Failed to read skills directory' }, { status: 500 })
+          }
+        }
+
+        if (!resolvedSkillPath) {
+          const lookupName = skillPath || skillName
           return json(
-            { ok: false, error: `Skill not found: ${skillName}` },
+            { ok: false, error: `Skill not found: ${lookupName}` },
             { status: 404 },
           )
         }
 
         try {
-          const content = fs.readFileSync(skillPath, 'utf-8')
+          const content = fs.readFileSync(resolvedSkillPath, 'utf-8')
           // Strip YAML frontmatter for cleaner display
           let displayContent = content
           const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n/)
@@ -107,9 +129,9 @@ export const Route = createFileRoute(
 
           return json({
             ok: true,
-            skillName,
+            skillName: skillPath || skillName,
             scope,
-            path: skillPath,
+            path: resolvedSkillPath,
             content: displayContent,
           })
         } catch {
