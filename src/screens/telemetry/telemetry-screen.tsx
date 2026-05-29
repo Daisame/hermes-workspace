@@ -281,69 +281,84 @@ function RunHistoryTable({ onSelectStage }: { onSelectStage: (runId: string, sta
     setExpanded(prev => prev === runId ? null : runId)
   }
 
-  if (loading) return <div className="text-xs text-[var(--theme-muted)]">Loading history…</div>
-  if (runs.length === 0) return <div className="text-xs text-[var(--theme-muted)]">No pipeline runs recorded yet.</div>
+  if (loading) return <div className="text-xs text-[var(--theme-muted)] px-1 py-2">Loading history…</div>
+  if (runs.length === 0) return <div className="text-xs text-[var(--theme-muted)] px-1 py-2">No pipeline runs recorded yet.</div>
 
   return (
-    <div className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-4">
-      <h2 className="mb-3 flex items-center gap-2 text-sm font-medium">
-        <HugeiconsIcon icon={Activity01Icon} size={16} className="text-[var(--theme-muted)]" />
-        Run History
-      </h2>
+    <div className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card)] overflow-hidden">
+      {/* Header bar */}
+      <div className="flex items-center gap-2 border-b border-[var(--theme-border)] px-4 py-2.5">
+        <HugeiconsIcon icon={Activity01Icon} size={14} className="text-[var(--theme-muted)]" />
+        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--theme-muted)]">Run History</span>
+      </div>
 
-      {/* Table header */}
-      <div className="mb-2 grid grid-cols-12 gap-2 border-b border-[var(--theme-border)] pb-2 text-[10px] font-medium uppercase tracking-wider text-[var(--theme-muted)]">
-        <div className="col-span-4">Run ID</div>
-        <div className="col-span-3">Started</div>
-        <div className="col-span-3">Stages</div>
-        <div className="col-span-2 text-center">Gate</div>
+      {/* Column headers */}
+      <div className="grid px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-[var(--theme-muted)] border-b border-[var(--theme-border)]"
+           style={{ gridTemplateColumns: '1fr 7rem 4rem 3.5rem' }}>
+        <div>Run ID</div>
+        <div>Started</div>
+        <div>Stages</div>
+        <div className="text-right">Gate</div>
       </div>
 
       {/* Rows */}
-      <div className="space-y-1">
+      <div className="divide-y divide-[var(--theme-border)]">
         {runs.map(run => {
           const isExpanded = expanded === run.run_id
-          // Determine overall gate outcome (last stage with outcome)
           const lastStageWithOutcome = [...run.stages].reverse().find(s => s.outcome)
           const gateOutcome = lastStageWithOutcome?.outcome ?? null
+          const stageNames = run.stages.map(s => s.name).join(', ')
 
           return (
-            <div key={run.run_id} className="group">
+            <div key={run.run_id}>
               {/* Run row */}
               <button
                 onClick={() => toggleExpand(run.run_id)}
-                className="w-full grid grid-cols-12 gap-2 rounded px-2 py-2 text-left text-xs transition-colors hover:bg-[var(--theme-hover)]"
+                className="w-full grid items-center px-4 py-2 text-left text-xs transition-colors hover:bg-[var(--theme-hover)]"
+                style={{ gridTemplateColumns: '1fr 7rem 4rem 3.5rem' }}
               >
-                <div className="col-span-4 font-mono truncate">{run.run_id}</div>
-                <div className="col-span-3 tabular-nums text-[var(--theme-muted)]">{formatStartedAt(run.started_at)}</div>
-                <div className="col-span-3 tabular-nums text-[var(--theme-muted)]">{run.stages_completed}</div>
-                <div className="col-span-2 flex justify-center">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <HugeiconsIcon
+                    icon={isExpanded ? ChevronDown : ChevronRight}
+                    size={12}
+                    className="shrink-0 text-[var(--theme-muted)]"
+                  />
+                  <span className="font-mono truncate">{run.run_id}</span>
+                  {stageNames && (
+                    <span className="hidden sm:inline text-[var(--theme-muted)] truncate text-[10px]">
+                      · {stageNames}
+                    </span>
+                  )}
+                </div>
+                <div className="tabular-nums text-[var(--theme-muted)]">{formatStartedAt(run.started_at)}</div>
+                <div className="tabular-nums text-[var(--theme-muted)]">{run.stages_completed}</div>
+                <div className="flex justify-end">
                   <OutcomeBadge outcome={gateOutcome} />
                 </div>
               </button>
 
-              {/* Expanded stages */}
+              {/* Expanded stage rows */}
               {isExpanded && (
-                <div className="ml-4 mt-1 border-l-2 border-[var(--theme-border)] pl-3 space-y-1">
-                  {/* Column headers */}
-                  <div className="grid grid-cols-12 gap-2 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--theme-muted)]">
-                    <div className="col-span-4">Stage</div>
-                    <div className="col-span-3">Duration</div>
-                    <div className="col-span-2">Gate</div>
-                    <div className="col-span-3">Confidence</div>
+                <div className="border-t border-[var(--theme-border)] bg-[var(--theme-hover)]/30">
+                  {/* Sub-header */}
+                  <div className="grid px-8 py-1 text-[10px] uppercase tracking-wider text-[var(--theme-muted)]"
+                       style={{ gridTemplateColumns: '1fr 5rem 3.5rem 6rem' }}>
+                    <div>Stage</div>
+                    <div>Duration</div>
+                    <div>Gate</div>
+                    <div>Confidence</div>
                   </div>
                   {run.stages.map(stage => (
                     <button
                       key={stage.name}
                       onClick={() => onSelectStage(run.run_id, stage.name)}
-                      className="w-full grid grid-cols-12 gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-[var(--theme-hover)]"
+                      className="w-full grid items-center px-8 py-1.5 text-left text-xs transition-colors hover:bg-[var(--theme-hover)]"
+                      style={{ gridTemplateColumns: '1fr 5rem 3.5rem 6rem' }}
                     >
-                      <div className="col-span-4 font-medium truncate">{stage.name}</div>
-                      <div className="col-span-3 tabular-nums text-[var(--theme-muted)]">{formatDuration(stage.duration_s)}</div>
-                      <div className="col-span-2">
-                        <OutcomeBadge outcome={stage.outcome} />
-                      </div>
-                      <div className="col-span-3 tabular-nums text-[var(--theme-muted)]">
+                      <div className="font-medium truncate">{stage.name}</div>
+                      <div className="tabular-nums text-[var(--theme-muted)]">{formatDuration(stage.duration_s)}</div>
+                      <div><OutcomeBadge outcome={stage.outcome} /></div>
+                      <div className="tabular-nums text-[var(--theme-muted)]">
                         {stage.confidence != null ? (() => {
                           const m = stage.confidence - 0.5
                           return `${fmt(stage.confidence, 2)} (${m >= 0 ? '+' : ''}${fmt(m, 2)})`
@@ -384,64 +399,93 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function StageDetailPanel({ detail, onClose }: { detail: StageDetail; onClose: () => void }) {
+  const hasInference = detail.generation_tps != null || detail.prefill_tps != null || detail.total_time_ms != null
+  const hasHardware = detail.gpu_temp_c != null || detail.vram_used_mb != null || detail.gpu_util_pct != null
+  const hasModelDetail = detail.quantization != null || detail.n_ctx != null || detail.kv_cache_location != null
+
   return (
-    <div className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-4">
-      {/* Header */}
-      <div className="mb-4 flex items-start justify-between">
-        <div>
-          <h2 className="flex items-center gap-2 text-sm font-medium">
-            <span className="font-mono">{detail.run_id}</span>
-            <span className="text-[var(--theme-muted)]">/</span>
-            <span>{detail.stage_name}</span>
-          </h2>
+    <div className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card)] overflow-hidden">
+      {/* Header bar — run/stage identity + gate outcome inline */}
+      <div className="flex items-center justify-between border-b border-[var(--theme-border)] px-4 py-2.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-mono text-xs text-[var(--theme-muted)] shrink-0">{detail.run_id}</span>
+          <span className="text-[var(--theme-muted)]">/</span>
+          <span className="text-xs font-medium truncate">{detail.stage_name}</span>
+          {detail.outcome && (
+            <OutcomeBadge outcome={detail.outcome} />
+          )}
+          {detail.confidence != null && (
+            <span className="text-[10px] tabular-nums text-[var(--theme-muted)]">
+              {(() => { const m = detail.confidence - 0.5; return `${fmt(detail.confidence, 2)} (${m >= 0 ? '+' : ''}${fmt(m, 2)})` })()}
+            </span>
+          )}
+          {detail.duration_s != null && (
+            <span className="text-[10px] tabular-nums text-[var(--theme-muted)]">· {formatDuration(detail.duration_s)}</span>
+          )}
         </div>
-        <button onClick={onClose} className="rounded p-1 hover:bg-[var(--theme-hover)]" aria-label="Close">
-          <HugeiconsIcon icon={Close} size={16} className="text-[var(--theme-muted)]" />
+        <button onClick={onClose} className="ml-4 shrink-0 rounded p-1 hover:bg-[var(--theme-hover)]" aria-label="Close">
+          <HugeiconsIcon icon={Close} size={14} className="text-[var(--theme-muted)]" />
         </button>
       </div>
 
-      {/* Sections */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Body — two-column grid, only render sections that have data */}
+      <div className="grid gap-x-8 gap-y-4 px-4 py-3 md:grid-cols-2">
+
+        {/* Inference Metrics */}
         <Section title="Inference Metrics">
-          <MetricRow label="Generation TPS" value={fmt(detail.generation_tps, 2)} />
-          <MetricRow label="Prefill TPS" value={fmt(detail.prefill_tps, 2)} />
-          <MetricRow label="Total Time" value={detail.total_time_ms != null ? `${(detail.total_time_ms / 1000).toFixed(1)}s` : '—'} />
-          <MetricRow label="Total Tokens" value={detail.total_tokens?.toLocaleString() ?? '—'} />
+          {hasInference ? (
+            <>
+              {detail.generation_tps != null && <MetricRow label="Generation TPS" value={fmt(detail.generation_tps, 2)} />}
+              {detail.prefill_tps != null && <MetricRow label="Prefill TPS" value={fmt(detail.prefill_tps, 2)} />}
+              {detail.total_time_ms != null && <MetricRow label="Total Time" value={`${(detail.total_time_ms / 1000).toFixed(1)}s`} />}
+              {detail.total_tokens != null && <MetricRow label="Total Tokens" value={detail.total_tokens.toLocaleString()} />}
+            </>
+          ) : (
+            <p className="text-[10px] text-[var(--theme-muted)] italic">Not recorded — run pipeline to capture</p>
+          )}
         </Section>
 
+        {/* Hardware at Completion */}
         <Section title="Hardware at Completion">
-          <MetricRow label="GPU Temp °C" value={fmt(detail.gpu_temp_c, 0)} />
-          <MetricRow label="VRAM Used / Total" value={(() => {
-            if (detail.vram_used_mb == null || detail.vram_total_mb == null) return '—'
-            return `${(detail.vram_used_mb / 1024).toFixed(1)} / ${(detail.vram_total_mb / 1024).toFixed(1)} GB`
-          })()} />
-          <MetricRow label="GPU Util %" value={fmt(detail.gpu_util_pct, 0)} />
-          <MetricRow label="Power Draw W" value={fmt(detail.power_draw_w)} />
-          <MetricRow label="CPU Util %" value={fmt(detail.cpu_utilization_pct, 0)} />
+          {hasHardware ? (
+            <>
+              {detail.gpu_temp_c != null && <MetricRow label="GPU Temp" value={`${fmt(detail.gpu_temp_c, 0)}°C`} />}
+              {(detail.vram_used_mb != null && detail.vram_total_mb != null) && (
+                <MetricRow label="VRAM" value={`${(detail.vram_used_mb/1024).toFixed(1)} / ${(detail.vram_total_mb/1024).toFixed(1)} GB`} />
+              )}
+              {detail.gpu_util_pct != null && <MetricRow label="GPU Util" value={`${fmt(detail.gpu_util_pct, 0)}%`} />}
+              {detail.power_draw_w != null && <MetricRow label="Power" value={`${fmt(detail.power_draw_w)}W`} />}
+              {detail.cpu_utilization_pct != null && <MetricRow label="CPU Util" value={`${fmt(detail.cpu_utilization_pct, 0)}%`} />}
+            </>
+          ) : (
+            <p className="text-[10px] text-[var(--theme-muted)] italic">Not recorded — run pipeline to capture</p>
+          )}
         </Section>
 
+        {/* Model Config */}
         <Section title="Model Config">
-          <MetricRow label="Model" value={detail.model_name ?? '—'} />
-          <MetricRow label="Quantization" value={detail.quantization ?? '—'} />
-          <MetricRow label="Context Window" value={detail.n_ctx?.toLocaleString() ?? '—'} />
-          <MetricRow label="KV Cache" value={detail.kv_cache_location ?? '—'} />
-          <MetricRow label="Server Version" value={detail.server_version ?? '—'} />
+          {detail.model_name && <MetricRow label="Model" value={detail.model_name} />}
+          {hasModelDetail ? (
+            <>
+              {detail.quantization && <MetricRow label="Quantization" value={detail.quantization.toUpperCase()} />}
+              {detail.n_ctx != null && <MetricRow label="Context" value={detail.n_ctx.toLocaleString()} />}
+              {detail.kv_cache_location && <MetricRow label="KV Cache" value={detail.kv_cache_location} />}
+              {detail.server_version && <MetricRow label="Backend" value={`llama.cpp ${detail.server_version}`} />}
+            </>
+          ) : (
+            !detail.model_name && <p className="text-[10px] text-[var(--theme-muted)] italic">Model metadata absent</p>
+          )}
         </Section>
 
-        <Section title="Pipeline Gate">
-          <MetricRow label="Outcome" value={<OutcomeBadge outcome={detail.outcome} />} />
-          <MetricRow label="Confidence" value={fmt(detail.confidence, 3)} />
-          <MetricRow label="Duration" value={formatDuration(detail.duration_s)} />
-        </Section>
       </div>
 
-      {/* Issues list — only shown on failure */}
+      {/* Issues — shown only on failure, full width */}
       {detail.issues && detail.issues.length > 0 && (
-        <div className="mt-4">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-red-400">Issues</h3>
+        <div className="border-t border-[var(--theme-border)] px-4 py-3">
+          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-red-400">Issues</h3>
           <ul className="space-y-1">
             {detail.issues.map((issue, i) => (
-              <li key={i} className="rounded bg-red-500/10 px-3 py-2 text-xs text-red-300">{issue}</li>
+              <li key={i} className="rounded bg-red-500/10 px-3 py-1.5 text-xs text-red-300">{issue}</li>
             ))}
           </ul>
         </div>
