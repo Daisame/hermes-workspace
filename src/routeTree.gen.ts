@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorldRouteImport } from './routes/world'
 import { Route as VtCapitalRouteImport } from './routes/vt-capital'
 import { Route as TerminalRouteImport } from './routes/terminal'
+import { Route as TelemetryRouteImport } from './routes/telemetry'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as Swarm2RouteImport } from './routes/swarm2'
 import { Route as SwarmRouteImport } from './routes/swarm'
@@ -44,6 +45,7 @@ import { Route as ApiTerminalStreamRouteImport } from './routes/api/terminal-str
 import { Route as ApiTerminalResizeRouteImport } from './routes/api/terminal-resize'
 import { Route as ApiTerminalInputRouteImport } from './routes/api/terminal-input'
 import { Route as ApiTerminalCloseRouteImport } from './routes/api/terminal-close'
+import { Route as ApiTelemetryStreamRouteImport } from './routes/api/telemetry-stream'
 import { Route as ApiSystemMetricsRouteImport } from './routes/api/system-metrics'
 import { Route as ApiSwarmTmuxStopRouteImport } from './routes/api/swarm-tmux-stop'
 import { Route as ApiSwarmTmuxStartRouteImport } from './routes/api/swarm-tmux-start'
@@ -178,6 +180,11 @@ const VtCapitalRoute = VtCapitalRouteImport.update({
 const TerminalRoute = TerminalRouteImport.update({
   id: '/terminal',
   path: '/terminal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TelemetryRoute = TelemetryRouteImport.update({
+  id: '/telemetry',
+  path: '/telemetry',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TasksRoute = TasksRouteImport.update({
@@ -338,6 +345,11 @@ const ApiTerminalInputRoute = ApiTerminalInputRouteImport.update({
 const ApiTerminalCloseRoute = ApiTerminalCloseRouteImport.update({
   id: '/api/terminal-close',
   path: '/api/terminal-close',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTelemetryStreamRoute = ApiTelemetryStreamRouteImport.update({
+  id: '/api/telemetry-stream',
+  path: '/api/telemetry-stream',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSystemMetricsRoute = ApiSystemMetricsRouteImport.update({
@@ -971,6 +983,7 @@ export interface FileRoutesByFullPath {
   '/swarm': typeof SwarmRoute
   '/swarm2': typeof Swarm2Route
   '/tasks': typeof TasksRoute
+  '/telemetry': typeof TelemetryRoute
   '/terminal': typeof TerminalRoute
   '/vt-capital': typeof VtCapitalRoute
   '/world': typeof WorldRoute
@@ -1040,6 +1053,7 @@ export interface FileRoutesByFullPath {
   '/api/swarm-tmux-start': typeof ApiSwarmTmuxStartRoute
   '/api/swarm-tmux-stop': typeof ApiSwarmTmuxStopRoute
   '/api/system-metrics': typeof ApiSystemMetricsRoute
+  '/api/telemetry-stream': typeof ApiTelemetryStreamRoute
   '/api/terminal-close': typeof ApiTerminalCloseRoute
   '/api/terminal-input': typeof ApiTerminalInputRoute
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
@@ -1127,6 +1141,7 @@ export interface FileRoutesByTo {
   '/swarm': typeof SwarmRoute
   '/swarm2': typeof Swarm2Route
   '/tasks': typeof TasksRoute
+  '/telemetry': typeof TelemetryRoute
   '/terminal': typeof TerminalRoute
   '/vt-capital': typeof VtCapitalRoute
   '/world': typeof WorldRoute
@@ -1196,6 +1211,7 @@ export interface FileRoutesByTo {
   '/api/swarm-tmux-start': typeof ApiSwarmTmuxStartRoute
   '/api/swarm-tmux-stop': typeof ApiSwarmTmuxStopRoute
   '/api/system-metrics': typeof ApiSystemMetricsRoute
+  '/api/telemetry-stream': typeof ApiTelemetryStreamRoute
   '/api/terminal-close': typeof ApiTerminalCloseRoute
   '/api/terminal-input': typeof ApiTerminalInputRoute
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
@@ -1285,6 +1301,7 @@ export interface FileRoutesById {
   '/swarm': typeof SwarmRoute
   '/swarm2': typeof Swarm2Route
   '/tasks': typeof TasksRoute
+  '/telemetry': typeof TelemetryRoute
   '/terminal': typeof TerminalRoute
   '/vt-capital': typeof VtCapitalRoute
   '/world': typeof WorldRoute
@@ -1354,6 +1371,7 @@ export interface FileRoutesById {
   '/api/swarm-tmux-start': typeof ApiSwarmTmuxStartRoute
   '/api/swarm-tmux-stop': typeof ApiSwarmTmuxStopRoute
   '/api/system-metrics': typeof ApiSystemMetricsRoute
+  '/api/telemetry-stream': typeof ApiTelemetryStreamRoute
   '/api/terminal-close': typeof ApiTerminalCloseRoute
   '/api/terminal-input': typeof ApiTerminalInputRoute
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
@@ -1444,6 +1462,7 @@ export interface FileRouteTypes {
     | '/swarm'
     | '/swarm2'
     | '/tasks'
+    | '/telemetry'
     | '/terminal'
     | '/vt-capital'
     | '/world'
@@ -1513,6 +1532,7 @@ export interface FileRouteTypes {
     | '/api/swarm-tmux-start'
     | '/api/swarm-tmux-stop'
     | '/api/system-metrics'
+    | '/api/telemetry-stream'
     | '/api/terminal-close'
     | '/api/terminal-input'
     | '/api/terminal-resize'
@@ -1600,6 +1620,7 @@ export interface FileRouteTypes {
     | '/swarm'
     | '/swarm2'
     | '/tasks'
+    | '/telemetry'
     | '/terminal'
     | '/vt-capital'
     | '/world'
@@ -1669,6 +1690,7 @@ export interface FileRouteTypes {
     | '/api/swarm-tmux-start'
     | '/api/swarm-tmux-stop'
     | '/api/system-metrics'
+    | '/api/telemetry-stream'
     | '/api/terminal-close'
     | '/api/terminal-input'
     | '/api/terminal-resize'
@@ -1757,6 +1779,7 @@ export interface FileRouteTypes {
     | '/swarm'
     | '/swarm2'
     | '/tasks'
+    | '/telemetry'
     | '/terminal'
     | '/vt-capital'
     | '/world'
@@ -1826,6 +1849,7 @@ export interface FileRouteTypes {
     | '/api/swarm-tmux-start'
     | '/api/swarm-tmux-stop'
     | '/api/system-metrics'
+    | '/api/telemetry-stream'
     | '/api/terminal-close'
     | '/api/terminal-input'
     | '/api/terminal-resize'
@@ -1915,6 +1939,7 @@ export interface RootRouteChildren {
   SwarmRoute: typeof SwarmRoute
   Swarm2Route: typeof Swarm2Route
   TasksRoute: typeof TasksRoute
+  TelemetryRoute: typeof TelemetryRoute
   TerminalRoute: typeof TerminalRoute
   VtCapitalRoute: typeof VtCapitalRoute
   WorldRoute: typeof WorldRoute
@@ -1984,6 +2009,7 @@ export interface RootRouteChildren {
   ApiSwarmTmuxStartRoute: typeof ApiSwarmTmuxStartRoute
   ApiSwarmTmuxStopRoute: typeof ApiSwarmTmuxStopRoute
   ApiSystemMetricsRoute: typeof ApiSystemMetricsRoute
+  ApiTelemetryStreamRoute: typeof ApiTelemetryStreamRoute
   ApiTerminalCloseRoute: typeof ApiTerminalCloseRoute
   ApiTerminalInputRoute: typeof ApiTerminalInputRoute
   ApiTerminalResizeRoute: typeof ApiTerminalResizeRoute
@@ -2043,6 +2069,13 @@ declare module '@tanstack/react-router' {
       path: '/terminal'
       fullPath: '/terminal'
       preLoaderRoute: typeof TerminalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/telemetry': {
+      id: '/telemetry'
+      path: '/telemetry'
+      fullPath: '/telemetry'
+      preLoaderRoute: typeof TelemetryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tasks': {
@@ -2267,6 +2300,13 @@ declare module '@tanstack/react-router' {
       path: '/api/terminal-close'
       fullPath: '/api/terminal-close'
       preLoaderRoute: typeof ApiTerminalCloseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/telemetry-stream': {
+      id: '/api/telemetry-stream'
+      path: '/api/telemetry-stream'
+      fullPath: '/api/telemetry-stream'
+      preLoaderRoute: typeof ApiTelemetryStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/system-metrics': {
@@ -3343,6 +3383,7 @@ const rootRouteChildren: RootRouteChildren = {
   SwarmRoute: SwarmRoute,
   Swarm2Route: Swarm2Route,
   TasksRoute: TasksRoute,
+  TelemetryRoute: TelemetryRoute,
   TerminalRoute: TerminalRoute,
   VtCapitalRoute: VtCapitalRoute,
   WorldRoute: WorldRoute,
@@ -3412,6 +3453,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSwarmTmuxStartRoute: ApiSwarmTmuxStartRoute,
   ApiSwarmTmuxStopRoute: ApiSwarmTmuxStopRoute,
   ApiSystemMetricsRoute: ApiSystemMetricsRoute,
+  ApiTelemetryStreamRoute: ApiTelemetryStreamRoute,
   ApiTerminalCloseRoute: ApiTerminalCloseRoute,
   ApiTerminalInputRoute: ApiTerminalInputRoute,
   ApiTerminalResizeRoute: ApiTerminalResizeRoute,

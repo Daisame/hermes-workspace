@@ -103,7 +103,8 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
     if (path.startsWith('/skills')) return 7
     if (path.startsWith('/mcp')) return 8
     if (path.startsWith('/profiles')) return 9
-    if (path.startsWith('/settings')) return 10
+    if (path.startsWith('/telemetry')) return 10
+    if (path.startsWith('/settings')) return 11
     return -1
   }, [])
 
