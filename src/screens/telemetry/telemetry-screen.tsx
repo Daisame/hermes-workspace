@@ -340,30 +340,30 @@ function RunHistoryTable({ onSelectStage }: { onSelectStage: (runId: string, sta
               {/* Expanded stage rows */}
               {isExpanded && (
                 <div className="border-t border-[var(--theme-border)] bg-[var(--theme-hover)]/30">
-                  {/* Sub-header */}
-                  <div className="grid px-8 py-1 text-[10px] uppercase tracking-wider text-[var(--theme-muted)]"
-                       style={{ gridTemplateColumns: '1fr 5rem 3.5rem 6rem' }}>
-                    <div>Stage</div>
+                  {/* Sub-header — same 4-col grid as parent row so columns align */}
+                  <div className="grid px-4 py-1 text-[10px] uppercase tracking-wider text-[var(--theme-muted)]"
+                       style={{ gridTemplateColumns: '1fr 7rem 4rem 3.5rem' }}>
+                    <div className="pl-5">Stage</div>
                     <div>Duration</div>
-                    <div>Gate</div>
                     <div>Confidence</div>
+                    <div className="text-right">Gate</div>
                   </div>
                   {run.stages.map(stage => (
                     <button
                       key={stage.name}
                       onClick={() => onSelectStage(run.run_id, stage.name)}
-                      className="w-full grid items-center px-8 py-1.5 text-left text-xs transition-colors hover:bg-[var(--theme-hover)]"
-                      style={{ gridTemplateColumns: '1fr 5rem 3.5rem 6rem' }}
+                      className="w-full grid items-center px-4 py-1.5 text-left text-xs transition-colors hover:bg-[var(--theme-hover)]"
+                      style={{ gridTemplateColumns: '1fr 7rem 4rem 3.5rem' }}
                     >
-                      <div className="font-medium truncate">{stage.name}</div>
+                      <div className="pl-5 font-medium truncate">{stage.name}</div>
                       <div className="tabular-nums text-[var(--theme-muted)]">{formatDuration(stage.duration_s)}</div>
-                      <div><OutcomeBadge outcome={stage.outcome} /></div>
                       <div className="tabular-nums text-[var(--theme-muted)]">
                         {stage.confidence != null ? (() => {
                           const m = stage.confidence - 0.5
                           return `${fmt(stage.confidence, 2)} (${m >= 0 ? '+' : ''}${fmt(m, 2)})`
                         })() : '—'}
                       </div>
+                      <div className="flex justify-end"><OutcomeBadge outcome={stage.outcome} /></div>
                     </button>
                   ))}
                 </div>
