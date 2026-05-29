@@ -92,6 +92,8 @@ interface StageDetail {
   quantization: string | null
   n_ctx: number | null
   kv_cache_location: string | null
+  kv_vram_mib: number | null
+  kv_ram_mib: number | null
   kv_k_quant: string | null
   kv_v_quant: string | null
   server_version: string | null
@@ -503,34 +505,81 @@ function StageDetailPanel({ detail, onClose }: { detail: StageDetail; onClose: (
       </div>
 
       <div className="px-4 py-3 space-y-4">
-        {/* Row 1 — Model + device identity (full width) */}
+        {/* Row 1 — Model + device identity (full width), each item labelled */}
         {(detail.model_name || detail.host || detail.gpu_name) && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <div className="flex flex-wrap items-end gap-x-5 gap-y-2">
             {detail.model_name && (
-              <span className="font-mono text-xs font-semibold">{detail.model_name}</span>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[9px] uppercase tracking-wider text-[var(--theme-muted)]">Model</span>
+                <span className="font-mono text-xs font-semibold">{detail.model_name}</span>
+              </div>
             )}
             {detail.quantization && (
-              <span className="rounded bg-[var(--theme-hover)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--theme-muted)]">
-                {detail.quantization.toUpperCase()}
-              </span>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[9px] uppercase tracking-wider text-[var(--theme-muted)]">Quantization</span>
+                <span className="font-mono text-xs">{detail.quantization.toUpperCase()}</span>
+              </div>
             )}
             {detail.n_ctx != null && (
-              <span className="text-[10px] text-[var(--theme-muted)]">{(detail.n_ctx / 1024).toFixed(0)}K ctx</span>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[9px] uppercase tracking-wider text-[var(--theme-muted)]">Context</span>
+                <span className="text-xs tabular-nums">{(detail.n_ctx / 1024).toFixed(0)}K</span>
+              </div>
             )}
             {detail.host && (
-              <span className="text-[10px] text-[var(--theme-muted)]">· {detail.host}</span>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[9px] uppercase tracking-wider text-[var(--theme-muted)]">Server</span>
+                <span className="text-xs">{detail.host}</span>
+              </div>
             )}
             {detail.gpu_name && (
-              <span className="text-[10px] text-[var(--theme-muted)]">· {detail.gpu_name}</span>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[9px] uppercase tracking-wider text-[var(--theme-muted)]">GPU</span>
+                <span className="text-xs">{detail.gpu_name}</span>
+              </div>
+            )}
+            {(() => {
+              // KV cache: show exact VRAM/RAM split if available, else location string
+              const vram = detail.kv_vram_mib
+              const ram  = detail.kv_ram_mib
+              const loc  = detail.kv_cache_location
+              if (vram == null && ram == null && !loc) return null
+              let label = '—'
+              let tag: { text: string; cls: string } | null = null
+              if (vram != null && ram != null && ram > 0) {
+                const total = vram + ram
+                label = `${(vram/1024).toFixed(1)}/${(ram/1024).toFixed(1)} GB VRAM/RAM`
+                tag = { text: 'Split', cls: 'bg-amber-500/15 text-amber-400' }
+              } else if (vram != null && vram > 0) {
+                label = `${(vram/1024).toFixed(1)} GB VRAM`
+                tag = { text: 'GPU', cls: 'bg-emerald-500/15 text-emerald-400' }
+              } else if (ram != null && ram > 0) {
+                label = `${(ram/1024).toFixed(1)} GB RAM`
+                tag = { text: 'CPU', cls: 'bg-amber-500/15 text-amber-400' }
+              } else if (loc) {
+                label = loc
+              }
+              return (
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[9px] uppercase tracking-wider text-[var(--theme-muted)]">KV Cache</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs tabular-nums">{label}</span>
+                    {tag && <span className={`rounded px-1.5 py-0.5 text-[9px] font-semibold ${tag.cls}`}>{tag.text}</span>}
+                  </div>
+                </div>
+              )
+            })()}
+            {detail.server_version && (
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[9px] uppercase tracking-wider text-[var(--theme-muted)]">Engine</span>
+                <span className="text-xs font-mono">llama.cpp {detail.server_version}</span>
+              </div>
             )}
             {splitTag && (
-              <span className={`rounded px-2 py-0.5 text-[10px] font-semibold ${splitTag.cls}`}>{splitTag.label}</span>
-            )}
-            {detail.kv_cache_location && (
-              <span className="text-[10px] text-[var(--theme-muted)]">· KV:{detail.kv_cache_location}</span>
-            )}
-            {detail.server_version && (
-              <span className="text-[10px] text-[var(--theme-muted)]">· llama.cpp {detail.server_version}</span>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[9px] uppercase tracking-wider text-[var(--theme-muted)]">Compute</span>
+                <span className={`rounded px-2 py-0.5 text-[10px] font-semibold ${splitTag.cls}`}>{splitTag.label}</span>
+              </div>
             )}
           </div>
         )}
