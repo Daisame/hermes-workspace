@@ -39,8 +39,19 @@ const CHART_HEIGHT = 120      // px per chart row
     We strip the outer wrapper and parse the inner JSON payload. */
 function parseTelemetryLine(raw: string): { machine: MachineKey; metrics: Record<string, number> } | null {
   try {
-    // Strip SSE double-wrapping: remove leading 'data: ' prefix if present
-    let cleaned = raw.replace(/^"?\s*data:\s*/i, '').replace(/"\s*$/, '')
+    // The workspace SSE proxy double-wraps: the upstream 'data: {json}' line
+    // gets JSON-stringified into the SSE data field, so e.data arrives as
+    // '"data: {\"machine\": ...}"'. Unwrap by JSON-parsing the outer string
+    // first, then strip the 'data: ' prefix from the inner value.
+    let inner: string = raw
+    try {
+      const unwrapped = JSON.parse(raw)
+      if (typeof unwrapped === 'string') inner = unwrapped
+    } catch {
+      // raw was not a JSON string — use as-is
+    }
+    // Strip SSE 'data: ' prefix if present
+    const cleaned = inner.replace(/^\s*data:\s*/i, '').trim()
     const parsed = JSON.parse(cleaned)
     const machine = parsed.machine as MachineKey | undefined
     if (!machine || !(machine in MACHINE_CONFIG)) return null
