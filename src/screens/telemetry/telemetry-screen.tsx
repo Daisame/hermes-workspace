@@ -9,6 +9,8 @@ import {
   ResponsiveContainer,
   XAxis,
   YAxis,
+  Tooltip,
+  ReferenceLine,
 } from 'recharts'
 
 /* ------------------------------------------------------------------ */
@@ -28,8 +30,16 @@ const MACHINE_CONFIG: Record<MachineKey, { label: string; icon: typeof Activity0
 }
 
 const MAX_POINTS = 60          // rolling window (~30s at 500ms)
-const CHART_HEIGHT = 120      // px per chart row
+const CHART_HEIGHT = 80       // px per chart row
 const OFFLINE_THRESHOLD_MS = 5000  // 5s gap → mark offline
+
+// Static scale bounds per metric — used in fixed mode
+const STATIC_DOMAINS: Record<string, [number, number]> = {
+  gpu_util:  [0, 100],
+  cpu:       [0, 100],
+  temp:      [0, 90],    // throttle threshold
+  // power and vram have machine-specific bounds set at render time
+}
 
 /* ------------------------------------------------------------------ */
 /*  Run History Types                                                  */
@@ -59,10 +69,17 @@ interface RunSummary {
 interface StageDetail {
   run_id: string
   stage_name: string
+  // Device identity
+  host: string | null
+  gpu_name: string | null
+  layers_cpu: number | null
+  cpu_split: boolean | null
+  // Inference
   generation_tps: number | null
   prefill_tps: number | null
   total_time_ms: number | null
   total_tokens: number | null
+  // Hardware
   gpu_temp_c: number | null
   vram_used_mb: number | null
   vram_total_mb: number | null
@@ -70,6 +87,7 @@ interface StageDetail {
   power_draw_w: number | null
   cpu_utilization_pct: number | null
   system_ram_used_mb: number | null
+  // Model
   model_name: string | null
   quantization: string | null
   n_ctx: number | null
@@ -77,6 +95,7 @@ interface StageDetail {
   kv_k_quant: string | null
   kv_v_quant: string | null
   server_version: string | null
+  // Gate
   outcome: 'pass' | 'fail' | null
   confidence: number | null
   duration_s: number | null
@@ -166,9 +185,17 @@ function emptyMachineData(): MachineData {
   return { gpu_util: [], vram_used: [], vram_total: null, temp: [], power: [], cpu: [] }
 }
 
-function MachineSection({ machine, data, isOffline }: { machine: MachineKey; data: MachineData; isOffline?: boolean }) {
+function MachineSection({ machine, data, isOffline, staticScale }: {
+  machine: MachineKey
+  data: MachineData
+  isOffline?: boolean
+  staticScale: boolean
+}) {
   const cfg = MACHINE_CONFIG[machine]
   const latest = (arr: TelemetryPoint[]) => arr.length ? arr.at(-1)!.value : 0
+  // Machine-specific power cap and VRAM total for static scaling
+  const powerCap = machine === 'locus' ? 300 : 600   // 3090Ti cap / 5090 TDP headroom
+  const vramTotal = data.vram_total ?? (machine === 'locus' ? 24576 : 32768)
 
   return (
     <div className={`rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-4 transition-opacity ${isOffline ? 'opacity-40' : ''}`}>
@@ -192,44 +219,80 @@ function MachineSection({ machine, data, isOffline }: { machine: MachineKey; dat
 
       {/* Charts */}
       <div className="space-y-2">
-        <ChartRow label="GPU Util %" data={data.gpu_util} color="#8b5cf6" />
-        <ChartRow label="VRAM GB" data={data.vram_used} color="#06b6d4"
+        <ChartRow label="GPU Util" unit="%" data={data.gpu_util} color="#8b5cf6"
+          domain={staticScale ? STATIC_DOMAINS.gpu_util : undefined} />
+        <ChartRow label="VRAM" unit=" GB" data={data.vram_used} color="#06b6d4"
           format={(v) => (v / 1024).toFixed(1)}
-          referenceLine={data.vram_total ? data.vram_total / 1024 : null} />
-        <ChartRow label="GPU Temp °C" data={data.temp} color="#f59e0b" />
-        <ChartRow label="Power W" data={data.power} color="#ef4444" />
-        <ChartRow label="CPU %" data={data.cpu} color="#10b981" />
+          domain={staticScale ? [0, vramTotal] : undefined}
+          refLine={staticScale ? vramTotal : undefined}
+          refLabel="total" />
+        <ChartRow label="Temp" unit="°C" data={data.temp} color="#f59e0b"
+          domain={staticScale ? STATIC_DOMAINS.temp : undefined}
+          refLine={staticScale ? 90 : undefined}
+          refLabel="throttle" />
+        <ChartRow label="Power" unit=" W" data={data.power} color="#ef4444"
+          domain={staticScale ? [0, powerCap] : undefined}
+          refLine={staticScale ? powerCap : undefined}
+          refLabel="cap" />
+        <ChartRow label="CPU" unit="%" data={data.cpu} color="#10b981"
+          domain={staticScale ? STATIC_DOMAINS.cpu : undefined} />
       </div>
     </div>
   )
 }
 
-function ChartRow({ label, data, color, format, referenceLine }: {
+// Custom tooltip for recharts — shows the exact value at the hovered point
+function ChartTooltip({ active, payload, unit, format }: {
+  active?: boolean
+  payload?: Array<{ value: number }>
+  unit: string
+  format?: (v: number) => string
+}) {
+  if (!active || !payload?.length) return null
+  const v = payload[0].value
+  const display = format ? format(v) + unit : v.toFixed(1) + unit
+  return (
+    <div className="rounded border border-[var(--theme-border)] bg-[var(--theme-card)] px-2 py-1 text-[10px] tabular-nums shadow-lg">
+      {display}
+    </div>
+  )
+}
+
+function ChartRow({ label, unit, data, color, format, domain, refLine, refLabel }: {
   label: string
+  unit: string
   data: TelemetryPoint[]
   color: string
   format?: (v: number) => string
-  referenceLine?: number | null
+  domain?: [number, number]
+  refLine?: number
+  refLabel?: string
 }) {
+  const latestVal = data.length ? data.at(-1)!.value : null
+  const display = latestVal != null
+    ? (format ? format(latestVal) + unit : latestVal.toFixed(1) + unit)
+    : '—'
+
   return (
     <div>
-      <div className="mb-1 flex justify-between text-[10px] text-[var(--theme-muted)]">
+      <div className="mb-0.5 flex justify-between text-[10px] text-[var(--theme-muted)]">
         <span>{label}</span>
-        <span>{data.length ? (format ?? ((v: number) => v.toFixed(0)))(data.at(-1)!.value) : '—'}</span>
+        <span className="tabular-nums">{display}</span>
       </div>
       <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-        <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+        <AreaChart data={data} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
           <XAxis dataKey="ts" hide />
-          <YAxis domain={[0, 'auto']} hide width={0} />
-          {referenceLine != null && (
-            <Area
-              type="monotone"
-              dataKey={() => referenceLine}
-              stroke="#ffffff30"
-              fill="none"
-              strokeWidth={1}
-              strokeDasharray="4 4"
-              isAnimationActive={false}
+          <YAxis domain={domain ?? [0, 'auto']} hide width={0} />
+          <Tooltip
+            content={<ChartTooltip unit={unit} format={format} />}
+            cursor={{ stroke: '#ffffff20', strokeWidth: 1 }}
+          />
+          {refLine != null && (
+            <ReferenceLine
+              y={refLine}
+              stroke="#ffffff25"
+              strokeDasharray="3 3"
+              label={{ value: refLabel, position: 'insideTopRight', fontSize: 8, fill: '#ffffff40' }}
             />
           )}
           <Area
@@ -276,6 +339,12 @@ function RunHistoryTable({ onSelectStage }: { onSelectStage: (runId: string, sta
   }, [])
 
   useEffect(() => { fetchRuns() }, [fetchRuns])
+
+  // Auto-refresh every 30s so new runs appear without page reload
+  useEffect(() => {
+    const id = setInterval(fetchRuns, 30_000)
+    return () => clearInterval(id)
+  }, [fetchRuns])
 
   const toggleExpand = (runId: string) => {
     setExpanded(prev => prev === runId ? null : runId)
@@ -403,17 +472,22 @@ function StageDetailPanel({ detail, onClose }: { detail: StageDetail; onClose: (
   const hasHardware = detail.gpu_temp_c != null || detail.vram_used_mb != null || detail.gpu_util_pct != null
   const hasModelDetail = detail.quantization != null || detail.n_ctx != null || detail.kv_cache_location != null
 
+  // CPU split tag: true = GPU+CPU, false = GPU only, null = unknown
+  const splitTag = detail.cpu_split === true
+    ? { label: 'GPU + CPU', cls: 'bg-amber-500/15 text-amber-400' }
+    : detail.cpu_split === false
+      ? { label: 'GPU only', cls: 'bg-emerald-500/15 text-emerald-400' }
+      : null
+
   return (
     <div className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card)] overflow-hidden">
-      {/* Header bar — run/stage identity + gate outcome inline */}
+      {/* Header bar */}
       <div className="flex items-center justify-between border-b border-[var(--theme-border)] px-4 py-2.5">
         <div className="flex items-center gap-2 min-w-0">
           <span className="font-mono text-xs text-[var(--theme-muted)] shrink-0">{detail.run_id}</span>
           <span className="text-[var(--theme-muted)]">/</span>
           <span className="text-xs font-medium truncate">{detail.stage_name}</span>
-          {detail.outcome && (
-            <OutcomeBadge outcome={detail.outcome} />
-          )}
+          {detail.outcome && <OutcomeBadge outcome={detail.outcome} />}
           {detail.confidence != null && (
             <span className="text-[10px] tabular-nums text-[var(--theme-muted)]">
               {(() => { const m = detail.confidence - 0.5; return `${fmt(detail.confidence, 2)} (${m >= 0 ? '+' : ''}${fmt(m, 2)})` })()}
@@ -428,58 +502,73 @@ function StageDetailPanel({ detail, onClose }: { detail: StageDetail; onClose: (
         </button>
       </div>
 
-      {/* Body — two-column grid, only render sections that have data */}
-      <div className="grid gap-x-8 gap-y-4 px-4 py-3 md:grid-cols-2">
+      <div className="px-4 py-3 space-y-4">
+        {/* Row 1 — Model + device identity (full width) */}
+        {(detail.model_name || detail.host || detail.gpu_name) && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            {detail.model_name && (
+              <span className="font-mono text-xs font-semibold">{detail.model_name}</span>
+            )}
+            {detail.quantization && (
+              <span className="rounded bg-[var(--theme-hover)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--theme-muted)]">
+                {detail.quantization.toUpperCase()}
+              </span>
+            )}
+            {detail.n_ctx != null && (
+              <span className="text-[10px] text-[var(--theme-muted)]">{(detail.n_ctx / 1024).toFixed(0)}K ctx</span>
+            )}
+            {detail.host && (
+              <span className="text-[10px] text-[var(--theme-muted)]">· {detail.host}</span>
+            )}
+            {detail.gpu_name && (
+              <span className="text-[10px] text-[var(--theme-muted)]">· {detail.gpu_name}</span>
+            )}
+            {splitTag && (
+              <span className={`rounded px-2 py-0.5 text-[10px] font-semibold ${splitTag.cls}`}>{splitTag.label}</span>
+            )}
+            {detail.kv_cache_location && (
+              <span className="text-[10px] text-[var(--theme-muted)]">· KV:{detail.kv_cache_location}</span>
+            )}
+            {detail.server_version && (
+              <span className="text-[10px] text-[var(--theme-muted)]">· llama.cpp {detail.server_version}</span>
+            )}
+          </div>
+        )}
 
-        {/* Inference Metrics */}
-        <Section title="Inference Metrics">
-          {hasInference ? (
-            <>
-              {detail.generation_tps != null && <MetricRow label="Generation TPS" value={fmt(detail.generation_tps, 2)} />}
-              {detail.prefill_tps != null && <MetricRow label="Prefill TPS" value={fmt(detail.prefill_tps, 2)} />}
-              {detail.total_time_ms != null && <MetricRow label="Total Time" value={`${(detail.total_time_ms / 1000).toFixed(1)}s`} />}
-              {detail.total_tokens != null && <MetricRow label="Total Tokens" value={detail.total_tokens.toLocaleString()} />}
-            </>
-          ) : (
-            <p className="text-[10px] text-[var(--theme-muted)] italic">Not recorded — run pipeline to capture</p>
-          )}
-        </Section>
+        {/* Row 2 — Inference + Hardware side by side */}
+        <div className="grid gap-x-8 gap-y-3 md:grid-cols-2">
+          <Section title="Inference Metrics">
+            {hasInference ? (
+              <>
+                {detail.generation_tps != null && <MetricRow label="Generation TPS" value={fmt(detail.generation_tps, 2)} />}
+                {detail.prefill_tps != null && <MetricRow label="Prefill TPS" value={fmt(detail.prefill_tps, 2)} />}
+                {detail.total_time_ms != null && <MetricRow label="Total Time" value={`${(detail.total_time_ms / 1000).toFixed(1)}s`} />}
+                {detail.total_tokens != null && <MetricRow label="Total Tokens" value={detail.total_tokens.toLocaleString()} />}
+              </>
+            ) : (
+              <p className="text-[10px] text-[var(--theme-muted)] italic">Not recorded — run pipeline to capture</p>
+            )}
+          </Section>
 
-        {/* Hardware at Completion */}
-        <Section title="Hardware at Completion">
-          {hasHardware ? (
-            <>
-              {detail.gpu_temp_c != null && <MetricRow label="GPU Temp" value={`${fmt(detail.gpu_temp_c, 0)}°C`} />}
-              {(detail.vram_used_mb != null && detail.vram_total_mb != null) && (
-                <MetricRow label="VRAM" value={`${(detail.vram_used_mb/1024).toFixed(1)} / ${(detail.vram_total_mb/1024).toFixed(1)} GB`} />
-              )}
-              {detail.gpu_util_pct != null && <MetricRow label="GPU Util" value={`${fmt(detail.gpu_util_pct, 0)}%`} />}
-              {detail.power_draw_w != null && <MetricRow label="Power" value={`${fmt(detail.power_draw_w)}W`} />}
-              {detail.cpu_utilization_pct != null && <MetricRow label="CPU Util" value={`${fmt(detail.cpu_utilization_pct, 0)}%`} />}
-            </>
-          ) : (
-            <p className="text-[10px] text-[var(--theme-muted)] italic">Not recorded — run pipeline to capture</p>
-          )}
-        </Section>
-
-        {/* Model Config */}
-        <Section title="Model Config">
-          {detail.model_name && <MetricRow label="Model" value={detail.model_name} />}
-          {hasModelDetail ? (
-            <>
-              {detail.quantization && <MetricRow label="Quantization" value={detail.quantization.toUpperCase()} />}
-              {detail.n_ctx != null && <MetricRow label="Context" value={detail.n_ctx.toLocaleString()} />}
-              {detail.kv_cache_location && <MetricRow label="KV Cache" value={detail.kv_cache_location} />}
-              {detail.server_version && <MetricRow label="Backend" value={`llama.cpp ${detail.server_version}`} />}
-            </>
-          ) : (
-            !detail.model_name && <p className="text-[10px] text-[var(--theme-muted)] italic">Model metadata absent</p>
-          )}
-        </Section>
-
+          <Section title="Hardware at Completion">
+            {hasHardware ? (
+              <>
+                {detail.gpu_temp_c != null && <MetricRow label="GPU Temp" value={`${fmt(detail.gpu_temp_c, 0)}°C`} />}
+                {(detail.vram_used_mb != null && detail.vram_total_mb != null) && (
+                  <MetricRow label="VRAM" value={`${(detail.vram_used_mb/1024).toFixed(1)} / ${(detail.vram_total_mb/1024).toFixed(1)} GB`} />
+                )}
+                {detail.gpu_util_pct != null && <MetricRow label="GPU Util" value={`${fmt(detail.gpu_util_pct, 0)}%`} />}
+                {detail.power_draw_w != null && <MetricRow label="Power" value={`${fmt(detail.power_draw_w)}W`} />}
+                {detail.cpu_utilization_pct != null && <MetricRow label="CPU Util" value={`${fmt(detail.cpu_utilization_pct, 0)}%`} />}
+              </>
+            ) : (
+              <p className="text-[10px] text-[var(--theme-muted)] italic">Not recorded — run pipeline to capture</p>
+            )}
+          </Section>
+        </div>
       </div>
 
-      {/* Issues — shown only on failure, full width */}
+      {/* Issues — full width, below */}
       {detail.issues && detail.issues.length > 0 && (
         <div className="border-t border-[var(--theme-border)] px-4 py-3">
           <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-red-400">Issues</h3>
@@ -500,6 +589,7 @@ function StageDetailPanel({ detail, onClose }: { detail: StageDetail; onClose: (
 
 export function TelemetryScreen() {
   const [connected, setConnected] = useState(false)
+  const [staticScale, setStaticScale] = useState(false)
   const machineRef = useRef<Record<string, MachineData>>({
     locus:   emptyMachineData(),
     gamepc:  emptyMachineData(),
@@ -601,18 +691,32 @@ export function TelemetryScreen() {
           <HugeiconsIcon icon={Activity01Icon} size={24} className="text-[var(--theme-accent)]" />
           <h1 className="text-lg font-semibold">Telemetry</h1>
         </div>
-        <div className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs ${
-          connected ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
-        }`}>
-          <span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-400' : 'bg-red-400'}`} />
-          {connected ? 'Live' : 'Connecting…'}
+        <div className="flex items-center gap-3">
+          {/* Static / Dynamic scale toggle */}
+          <button
+            onClick={() => setStaticScale(s => !s)}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-colors ${
+              staticScale
+                ? 'bg-[var(--theme-accent)]/15 text-[var(--theme-accent)]'
+                : 'bg-[var(--theme-hover)] text-[var(--theme-muted)]'
+            }`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${staticScale ? 'bg-[var(--theme-accent)]' : 'bg-[var(--theme-muted)]'}`} />
+            {staticScale ? 'Fixed scale' : 'Auto scale'}
+          </button>
+          <div className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs ${
+            connected ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+          }`}>
+            <span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-400' : 'bg-red-400'}`} />
+            {connected ? 'Live' : 'Connecting…'}
+          </div>
         </div>
       </div>
 
       {/* Panel 1 — Machine cards — side by side */}
       <div className="grid gap-5 lg:grid-cols-2">
-        <MachineSection machine="locus" data={locusData} isOffline={offlineMachines.has('locus')} />
-        <MachineSection machine="gamepc" data={gamepcData} isOffline={offlineMachines.has('gamepc')} />
+        <MachineSection machine="locus" data={locusData} isOffline={offlineMachines.has('locus')} staticScale={staticScale} />
+        <MachineSection machine="gamepc" data={gamepcData} isOffline={offlineMachines.has('gamepc')} staticScale={staticScale} />
       </div>
 
       {/* Panel 2 — Run History Table */}
