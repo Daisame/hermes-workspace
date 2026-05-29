@@ -1,5 +1,6 @@
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
+  Activity01Icon,
   ArrowDown01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
@@ -882,6 +883,13 @@ function ChatSidebarComponent({
       icon: UserMultipleIcon,
       label: t('nav.profiles'),
       active: pathname === '/profiles',
+    },
+    {
+      kind: 'link',
+      to: '/telemetry',
+      icon: Activity01Icon,
+      label: 'Telemetry',
+      active: pathname.startsWith('/telemetry'),
     },
   ]
 

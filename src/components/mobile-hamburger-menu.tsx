@@ -1,6 +1,7 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
+  Activity01Icon,
   BrainIcon,
   Building01Icon,
   Cancel01Icon,
@@ -112,6 +113,13 @@ export const MOBILE_HAMBURGER_NAV_ITEMS = [
     icon: UserGroupIcon,
     to: '/profiles',
     match: (p: string) => p.startsWith('/profiles'),
+  },
+  {
+    id: 'telemetry',
+    label: 'Telemetry',
+    icon: Activity01Icon,
+    to: '/telemetry',
+    match: (p: string) => p.startsWith('/telemetry'),
   },
 ]
 
