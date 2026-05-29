@@ -325,6 +325,13 @@ function RunHistoryTable({ onSelectStage }: { onSelectStage: (runId: string, sta
               {/* Expanded stages */}
               {isExpanded && (
                 <div className="ml-4 mt-1 border-l-2 border-[var(--theme-border)] pl-3 space-y-1">
+                  {/* Column headers */}
+                  <div className="grid grid-cols-12 gap-2 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--theme-muted)]">
+                    <div className="col-span-4">Stage</div>
+                    <div className="col-span-3">Duration</div>
+                    <div className="col-span-2">Gate</div>
+                    <div className="col-span-3">Confidence</div>
+                  </div>
                   {run.stages.map(stage => (
                     <button
                       key={stage.name}
