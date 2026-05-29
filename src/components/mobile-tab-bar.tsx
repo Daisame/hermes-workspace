@@ -1,8 +1,8 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
+  Activity01Icon,
   BrainIcon,
-  Building01Icon,
   Chat01Icon,
   Clock01Icon,
   CommandLineIcon,
@@ -123,6 +123,13 @@ export const MOBILE_NAV_TABS: Array<TabItem> = [
     icon: UserGroupIcon,
     to: '/profiles',
     match: (p) => p.startsWith('/profiles'),
+  },
+  {
+    id: 'telemetry',
+    label: 'Telemetry',
+    icon: Activity01Icon,
+    to: '/telemetry',
+    match: (p) => p.startsWith('/telemetry'),
   },
   {
     id: 'settings',
