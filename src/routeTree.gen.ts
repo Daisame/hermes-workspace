@@ -115,6 +115,7 @@ import { Route as ApiArtifactsRouteImport } from './routes/api/artifacts'
 import { Route as ApiUpdateWorkspaceRouteImport } from './routes/api/update/workspace'
 import { Route as ApiUpdateStatusRouteImport } from './routes/api/update/status'
 import { Route as ApiUpdateAgentRouteImport } from './routes/api/update/agent'
+import { Route as ApiTelemetryRunsRouteImport } from './routes/api/telemetry/runs'
 import { Route as ApiSwarmRuntimeResetRouteImport } from './routes/api/swarm-runtime.reset'
 import { Route as ApiSwarmMemorySearchRouteImport } from './routes/api/swarm-memory/search'
 import { Route as ApiSkillsUninstallRouteImport } from './routes/api/skills/uninstall'
@@ -165,6 +166,7 @@ import { Route as ApiHermesworldReservationsConfirmRouteImport } from './routes/
 import { Route as ApiFederationAgentsNameDetailRouteImport } from './routes/api/federation/agents.$name.detail'
 import { Route as ApiFederationAgentsNameColorRouteImport } from './routes/api/federation/agents.$name.color'
 import { Route as ApiFederationAgentsNameAvatarRouteImport } from './routes/api/federation/agents.$name.avatar'
+import { Route as ApiTelemetryRunsRunIdStagesStageNameRouteImport } from './routes/api/telemetry/runs.$runId/stages.$stageName'
 import { Route as ApiFederationAgentsNameSkillReadRouteImport } from './routes/api/federation/agents.$name.skill.read'
 
 const WorldRoute = WorldRouteImport.update({
@@ -698,6 +700,11 @@ const ApiUpdateAgentRoute = ApiUpdateAgentRouteImport.update({
   path: '/api/update/agent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTelemetryRunsRoute = ApiTelemetryRunsRouteImport.update({
+  id: '/api/telemetry/runs',
+  path: '/api/telemetry/runs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSwarmRuntimeResetRoute = ApiSwarmRuntimeResetRouteImport.update({
   id: '/reset',
   path: '/reset',
@@ -955,6 +962,12 @@ const ApiFederationAgentsNameAvatarRoute =
     path: '/api/federation/agents/$name/avatar',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiTelemetryRunsRunIdStagesStageNameRoute =
+  ApiTelemetryRunsRunIdStagesStageNameRouteImport.update({
+    id: '/$runId/stages/$stageName',
+    path: '/$runId/stages/$stageName',
+    getParentRoute: () => ApiTelemetryRunsRoute,
+  } as any)
 const ApiFederationAgentsNameSkillReadRoute =
   ApiFederationAgentsNameSkillReadRouteImport.update({
     id: '/api/federation/agents/$name/skill/read',
@@ -1108,6 +1121,7 @@ export interface FileRoutesByFullPath {
   '/api/skills/uninstall': typeof ApiSkillsUninstallRoute
   '/api/swarm-memory/search': typeof ApiSwarmMemorySearchRoute
   '/api/swarm-runtime/reset': typeof ApiSwarmRuntimeResetRoute
+  '/api/telemetry/runs': typeof ApiTelemetryRunsRouteWithChildren
   '/api/update/agent': typeof ApiUpdateAgentRoute
   '/api/update/status': typeof ApiUpdateStatusRoute
   '/api/update/workspace': typeof ApiUpdateWorkspaceRoute
@@ -1120,6 +1134,7 @@ export interface FileRoutesByFullPath {
   '/api/federation/agents/$name/color': typeof ApiFederationAgentsNameColorRoute
   '/api/federation/agents/$name/detail': typeof ApiFederationAgentsNameDetailRoute
   '/api/federation/agents/$name/skill/read': typeof ApiFederationAgentsNameSkillReadRoute
+  '/api/telemetry/runs/$runId/stages/$stageName': typeof ApiTelemetryRunsRunIdStagesStageNameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1266,6 +1281,7 @@ export interface FileRoutesByTo {
   '/api/skills/uninstall': typeof ApiSkillsUninstallRoute
   '/api/swarm-memory/search': typeof ApiSwarmMemorySearchRoute
   '/api/swarm-runtime/reset': typeof ApiSwarmRuntimeResetRoute
+  '/api/telemetry/runs': typeof ApiTelemetryRunsRouteWithChildren
   '/api/update/agent': typeof ApiUpdateAgentRoute
   '/api/update/status': typeof ApiUpdateStatusRoute
   '/api/update/workspace': typeof ApiUpdateWorkspaceRoute
@@ -1278,6 +1294,7 @@ export interface FileRoutesByTo {
   '/api/federation/agents/$name/color': typeof ApiFederationAgentsNameColorRoute
   '/api/federation/agents/$name/detail': typeof ApiFederationAgentsNameDetailRoute
   '/api/federation/agents/$name/skill/read': typeof ApiFederationAgentsNameSkillReadRoute
+  '/api/telemetry/runs/$runId/stages/$stageName': typeof ApiTelemetryRunsRunIdStagesStageNameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1426,6 +1443,7 @@ export interface FileRoutesById {
   '/api/skills/uninstall': typeof ApiSkillsUninstallRoute
   '/api/swarm-memory/search': typeof ApiSwarmMemorySearchRoute
   '/api/swarm-runtime/reset': typeof ApiSwarmRuntimeResetRoute
+  '/api/telemetry/runs': typeof ApiTelemetryRunsRouteWithChildren
   '/api/update/agent': typeof ApiUpdateAgentRoute
   '/api/update/status': typeof ApiUpdateStatusRoute
   '/api/update/workspace': typeof ApiUpdateWorkspaceRoute
@@ -1438,6 +1456,7 @@ export interface FileRoutesById {
   '/api/federation/agents/$name/color': typeof ApiFederationAgentsNameColorRoute
   '/api/federation/agents/$name/detail': typeof ApiFederationAgentsNameDetailRoute
   '/api/federation/agents/$name/skill/read': typeof ApiFederationAgentsNameSkillReadRoute
+  '/api/telemetry/runs/$runId/stages/$stageName': typeof ApiTelemetryRunsRunIdStagesStageNameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1587,6 +1606,7 @@ export interface FileRouteTypes {
     | '/api/skills/uninstall'
     | '/api/swarm-memory/search'
     | '/api/swarm-runtime/reset'
+    | '/api/telemetry/runs'
     | '/api/update/agent'
     | '/api/update/status'
     | '/api/update/workspace'
@@ -1599,6 +1619,7 @@ export interface FileRouteTypes {
     | '/api/federation/agents/$name/color'
     | '/api/federation/agents/$name/detail'
     | '/api/federation/agents/$name/skill/read'
+    | '/api/telemetry/runs/$runId/stages/$stageName'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1745,6 +1766,7 @@ export interface FileRouteTypes {
     | '/api/skills/uninstall'
     | '/api/swarm-memory/search'
     | '/api/swarm-runtime/reset'
+    | '/api/telemetry/runs'
     | '/api/update/agent'
     | '/api/update/status'
     | '/api/update/workspace'
@@ -1757,6 +1779,7 @@ export interface FileRouteTypes {
     | '/api/federation/agents/$name/color'
     | '/api/federation/agents/$name/detail'
     | '/api/federation/agents/$name/skill/read'
+    | '/api/telemetry/runs/$runId/stages/$stageName'
   id:
     | '__root__'
     | '/'
@@ -1904,6 +1927,7 @@ export interface FileRouteTypes {
     | '/api/skills/uninstall'
     | '/api/swarm-memory/search'
     | '/api/swarm-runtime/reset'
+    | '/api/telemetry/runs'
     | '/api/update/agent'
     | '/api/update/status'
     | '/api/update/workspace'
@@ -1916,6 +1940,7 @@ export interface FileRouteTypes {
     | '/api/federation/agents/$name/color'
     | '/api/federation/agents/$name/detail'
     | '/api/federation/agents/$name/skill/read'
+    | '/api/telemetry/runs/$runId/stages/$stageName'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2039,6 +2064,7 @@ export interface RootRouteChildren {
   ApiProfilesReadRoute: typeof ApiProfilesReadRoute
   ApiProfilesRenameRoute: typeof ApiProfilesRenameRoute
   ApiProfilesUpdateRoute: typeof ApiProfilesUpdateRoute
+  ApiTelemetryRunsRoute: typeof ApiTelemetryRunsRouteWithChildren
   ApiUpdateAgentRoute: typeof ApiUpdateAgentRoute
   ApiUpdateStatusRoute: typeof ApiUpdateStatusRoute
   ApiUpdateWorkspaceRoute: typeof ApiUpdateWorkspaceRoute
@@ -2792,6 +2818,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiUpdateAgentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/telemetry/runs': {
+      id: '/api/telemetry/runs'
+      path: '/api/telemetry/runs'
+      fullPath: '/api/telemetry/runs'
+      preLoaderRoute: typeof ApiTelemetryRunsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/swarm-runtime/reset': {
       id: '/api/swarm-runtime/reset'
       path: '/reset'
@@ -3142,6 +3175,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFederationAgentsNameAvatarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/telemetry/runs/$runId/stages/$stageName': {
+      id: '/api/telemetry/runs/$runId/stages/$stageName'
+      path: '/$runId/stages/$stageName'
+      fullPath: '/api/telemetry/runs/$runId/stages/$stageName'
+      preLoaderRoute: typeof ApiTelemetryRunsRunIdStagesStageNameRouteImport
+      parentRoute: typeof ApiTelemetryRunsRoute
+    }
     '/api/federation/agents/$name/skill/read': {
       id: '/api/federation/agents/$name/skill/read'
       path: '/api/federation/agents/$name/skill/read'
@@ -3362,6 +3402,18 @@ const ApiHermesworldReservationsRouteWithChildren =
     ApiHermesworldReservationsRouteChildren,
   )
 
+interface ApiTelemetryRunsRouteChildren {
+  ApiTelemetryRunsRunIdStagesStageNameRoute: typeof ApiTelemetryRunsRunIdStagesStageNameRoute
+}
+
+const ApiTelemetryRunsRouteChildren: ApiTelemetryRunsRouteChildren = {
+  ApiTelemetryRunsRunIdStagesStageNameRoute:
+    ApiTelemetryRunsRunIdStagesStageNameRoute,
+}
+
+const ApiTelemetryRunsRouteWithChildren =
+  ApiTelemetryRunsRoute._addFileChildren(ApiTelemetryRunsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
@@ -3483,6 +3535,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiProfilesReadRoute: ApiProfilesReadRoute,
   ApiProfilesRenameRoute: ApiProfilesRenameRoute,
   ApiProfilesUpdateRoute: ApiProfilesUpdateRoute,
+  ApiTelemetryRunsRoute: ApiTelemetryRunsRouteWithChildren,
   ApiUpdateAgentRoute: ApiUpdateAgentRoute,
   ApiUpdateStatusRoute: ApiUpdateStatusRoute,
   ApiUpdateWorkspaceRoute: ApiUpdateWorkspaceRoute,
