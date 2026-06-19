@@ -10,8 +10,7 @@ import path from 'node:path'
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../../server/auth-middleware'
-
-const VALID_AGENT_NAMES = new Set(['nyx', 'lyra', 'alethea', 'cora', 'aether'])
+import { VALID_AGENT_NAMES } from '@/lib/agent-allowlist'
 
 function getProfilesRoot(): string {
   const home = process.env.HOME || '/home/mako'

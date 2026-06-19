@@ -7,9 +7,9 @@ import path from 'node:path'
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../../server/auth-middleware'
+import { VALID_AGENT_NAMES } from '@/lib/agent-allowlist'
 
 const AVATARS_DIR = '/opt/ai/hermes-workspace-fork/public/avatars'
-const VALID_AGENT_NAMES = new Set(['nyx', 'lyra', 'alethea', 'cora', 'aether'])
 const MAX_BYTES = 5 * 1024 * 1024 // 5MB
 
 export const Route = createFileRoute('/api/federation/agents/$name/avatar')({

@@ -19,7 +19,7 @@ const AGENT_NAMES: Record<number, string> = {
   8642: 'Lyra',
   8643: 'Alethea',
   8644: 'Cora',
-  8645: 'Aether',
+  8645: 'Kira',
 }
 
 async function probeAgent(port: number): Promise<AgentStatusResponse> {

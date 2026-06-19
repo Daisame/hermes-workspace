@@ -274,8 +274,9 @@ export function ProfilesScreen() {
   useEffect(() => {
     if (!detailsName) { setAgentDetail(null); return }
     const lower = detailsName.toLowerCase()
-    const validAgents = ['nyx', 'lyra', 'alethea', 'cora', 'aether']
-    if (!validAgents.includes(lower)) { setAgentDetail(null); return }
+    // Derive valid names from agents.json (already fetched by useAgentRoster)
+    const rosterNames = new Set(rosterAgents.map((a: any) => a.name.toLowerCase()))
+    if (!rosterNames.has(lower)) { setAgentDetail(null); return }
     setHermesHubExpanded(false)
     setDetailLoading(true)
     fetch(`/api/federation/agents/${lower}/detail`)

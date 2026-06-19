@@ -6,9 +6,9 @@ import fs from 'node:fs'
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../../server/auth-middleware'
+import { VALID_AGENT_NAMES } from '@/lib/agent-allowlist'
 
 const AGENTS_JSON = '/opt/ai/hermes-workspace-fork/agents.json'
-const VALID_AGENT_NAMES = new Set(['nyx', 'lyra', 'alethea', 'cora', 'aether'])
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
 
 export const Route = createFileRoute('/api/federation/agents/$name/color')({

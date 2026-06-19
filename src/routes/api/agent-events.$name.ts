@@ -3,15 +3,14 @@
  * to the browser. No buffering, no parsing, no auth (EventSource can't send headers).
  */
 import { createFileRoute } from '@tanstack/react-router'
-
-const VALID_AGENTS = ['nyx', 'lyra', 'alethea', 'cora', 'aether']
+import { VALID_AGENT_NAMES } from '@/lib/agent-allowlist'
 
 export const Route = createFileRoute('/api/agent-events/$name')({
   server: {
     handlers: {
       GET: async ({ request, params }) => {
         const name = params.name.toLowerCase()
-        if (!VALID_AGENTS.includes(name)) {
+        if (!VALID_AGENT_NAMES.has(name)) {
           return new Response('Not Found', { status: 404 })
         }
 

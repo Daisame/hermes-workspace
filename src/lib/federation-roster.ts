@@ -19,11 +19,11 @@ export interface AgentStaticConfig {
 }
 
 export const STATIC_AGENTS: Record<string, AgentStaticConfig> = {
-  Nyx:     { name: 'Nyx',     role: 'Coder',    port: 8641, color: '#a78bfa' },
-  Lyra:    { name: 'Lyra',    role: 'Editor',   port: 8642, color: '#34d399' },
-  Alethea: { name: 'Alethea', role: 'Research', port: 8643, color: '#60a5fa' },
-  Cora:    { name: 'Cora',    role: 'DevOps',   port: 8644, color: '#f59e0b' },
-  Aether:  { name: 'Aether',  role: 'Auditor',  port: 8645, color: '#f87171' },
+  Nyx:     { name: 'Nyx',     role: 'Coder',            port: 8641, color: '#a78bfa' },
+  Lyra:    { name: 'Lyra',    role: 'Editor',           port: 8642, color: '#34d399' },
+  Alethea: { name: 'Alethea', role: 'Research',         port: 8643, color: '#60a5fa' },
+  Cora:    { name: 'Cora',    role: 'DevOps',           port: 8644, color: '#f59e0b' },
+  Kira:    { name: 'Kira',    role: 'Personal Assistant', port: 8645, color: '#ec4899' },
 }
 
 // ── Types ─────────────────────────────────────────────────────────────
