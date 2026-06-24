@@ -3,6 +3,8 @@
  * Renders as a tab inside the Agent Profile page.
  */
 import { useEffect, useState } from 'react'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { ChevronDown } from '@hugeicons/core-free-icons'
 import { useMutation } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -114,6 +116,7 @@ async function pullVoice(
   voiceId: string,
   seedText?: string,
   model?: string,
+  outputFormat?: string,
 ): Promise<{ metadata: VoiceMetadata; output: string }> {
   const response = await fetch('/api/voice-pull', {
     method: 'POST',
@@ -123,6 +126,7 @@ async function pullVoice(
       voiceId,
       seedText,
       model,
+      outputFormat,
     }),
   })
 
@@ -151,7 +155,7 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
     voiceId: currentSettings?.voiceId || '',
     seedText: currentSettings?.seedText ?? DEFAULT_SEED_TEXT,
     model: currentSettings?.model ?? DEFAULT_MODEL,
-    outputFormat: 'pcm_48000 / 48kHz 16-bit mono',
+    outputFormat: 'pcm_48000',
     activeVoiceName: currentSettings?.activeVoiceName || agentId.toLowerCase(),
   })
 
@@ -187,6 +191,7 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
         settings.voiceId,
         settings.seedText,
         settings.model,
+        settings.outputFormat,
       )
     },
     onSuccess: (result) => {
@@ -249,15 +254,18 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
             <span className="text-xs font-medium text-primary-600">
               Model
             </span>
-            <select
-              value={settings.model}
-              disabled={isSaving}
-              onChange={(e) => setSettings({ ...settings, model: e.target.value })}
-              className="mt-1 h-9 w-full rounded-xl border border-primary-200 bg-primary-50 px-3 text-sm text-primary-900 outline-none transition focus:border-primary-300 disabled:opacity-50"
-            >
-              <option value="eleven_multilingual_v2">eleven_multilingual_v2</option>
-              <option value="eleven_turbo_v2_5">eleven_turbo_v2_5</option>
-            </select>
+            <div className="relative mt-1">
+              <select
+                value={settings.model}
+                disabled={isSaving}
+                onChange={(e) => setSettings({ ...settings, model: e.target.value })}
+                className="h-9 w-full appearance-none rounded-xl border border-primary-200 bg-primary-50 px-3 pr-8 text-sm text-primary-900 outline-none transition focus:border-primary-300 disabled:opacity-50"
+              >
+                <option value="eleven_multilingual_v2">eleven_multilingual_v2</option>
+                <option value="eleven_turbo_v2_5">eleven_turbo_v2_5</option>
+              </select>
+              <HugeiconsIcon icon={ChevronDown} size={16} className="pointer-events-none absolute right-2 top-2.5 text-primary-400" />
+            </div>
           </label>
 
           <label className="block md:col-span-2">
@@ -274,8 +282,9 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
           </label>
 
           <label className="block">
-            <span className="text-xs font-medium text-primary-600">
-              Active Voice Name
+            <span className="text-xs font-medium text-primary-600">TTS Voice Name</span>
+            <span className="mt-0.5 block text-[10px] text-primary-400">
+              MOSS TTS: voice file name (e.g. kate_narrator) · OpenAI TTS: voice (e.g. alloy)
             </span>
             <Input
               value={settings.activeVoiceName}
@@ -286,14 +295,25 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
             />
           </label>
 
-          <div className="block">
-            <span className="text-xs font-medium text-primary-600">
-              Output Format
-            </span>
-            <div className="mt-1 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-500">
-              {settings.outputFormat}
+          <label className="block">
+            <span className="text-xs font-medium text-primary-600">Output Format</span>
+            <div className="relative mt-1">
+              <select
+                value={settings.outputFormat}
+                disabled={isSaving}
+                onChange={(e) => setSettings({ ...settings, outputFormat: e.target.value })}
+                className="h-9 w-full appearance-none rounded-xl border border-primary-200 bg-primary-50 px-3 pr-8 text-sm text-primary-900 outline-none transition focus:border-primary-300 disabled:opacity-50"
+              >
+                <option value="pcm_48000">pcm_48000 — 48kHz 16-bit mono (recommended)</option>
+                <option value="pcm_44100">pcm_44100 — 44.1kHz 16-bit mono</option>
+                <option value="pcm_24000">pcm_24000 — 24kHz 16-bit mono</option>
+                <option value="pcm_16000">pcm_16000 — 16kHz 16-bit mono</option>
+                <option value="mp3_44100_128">mp3_44100_128 — 44.1kHz 128kbps MP3</option>
+                <option value="mp3_44100_192">mp3_44100_192 — 44.1kHz 192kbps MP3</option>
+              </select>
+              <HugeiconsIcon icon={ChevronDown} size={16} className="pointer-events-none absolute right-2 top-2.5 text-primary-400" />
             </div>
-          </div>
+          </label>
         </div>
 
         <div className="mt-4 flex gap-3">
