@@ -15,6 +15,7 @@ import { toggleAgentPause } from '@/lib/gateway-api'
 import { toast } from '@/components/ui/toast'
 import { AgentHubLayout } from './agent-hub-layout'
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh'
+import { VoicePanel } from '@/components/voice-panel/voice-panel'
 
 type AgentGatewayEntry = {
   id?: string
@@ -971,6 +972,20 @@ export function AgentsScreen({ variant = 'mission-control' }: AgentsScreenProps)
   }, [cronJobsQuery.data, selectedConfigAgent, selectedDefinition])
 
   const selectedAgentConfig = agentConfigQuery.data
+
+  // Extract voice settings from raw profile config for VoicePanel pre-population
+  const voiceSettings = useMemo(() => {
+    const tts: Record<string, unknown> | undefined = (selectedAgentConfig as any)?.config?.tts
+    return {
+      voiceId: typeof tts?.elevenlabs?.voice_id === 'string' ? tts.elevenlabs.voice_id : '',
+      seedText: typeof tts?.elevenlabs?.seed_text === 'string' ? tts.elevenlabs.seed_text : undefined,
+      model: typeof tts?.elevenlabs?.model_id === 'string' ? tts.elevenlabs.model_id : undefined,
+      activeVoiceName: typeof tts?.openai?.voice === 'string'
+        ? tts.openai.voice
+        : (selectedConfigAgent.id || '').toLowerCase(),
+    }
+  }, [selectedAgentConfig, selectedConfigAgent.id])
+
   const draftSnapshot = serializeAgentConfigDraft(agentConfigDraft)
   const configSnapshot = useMemo(
     () =>
@@ -1538,6 +1553,9 @@ export function AgentsScreen({ variant = 'mission-control' }: AgentsScreenProps)
                     <TabsTrigger value="cron" className="min-w-[102px] flex-1">
                       Cron Jobs
                     </TabsTrigger>
+                    <TabsTrigger value="voice" className="min-w-[92px] flex-1">
+                      Voice
+                    </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="overview" className="space-y-4">
@@ -1858,6 +1876,10 @@ export function AgentsScreen({ variant = 'mission-control' }: AgentsScreenProps)
                         </div>
                       ))
                     )}
+                  </TabsContent>
+
+                  <TabsContent value="voice" className="space-y-3">
+                    <VoicePanel agentId={selectedConfigAgent.id || ''} currentSettings={voiceSettings} />
                   </TabsContent>
                 </Tabs>
               )}

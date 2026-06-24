@@ -40,6 +40,8 @@ import { Route as ReserveConfirmRouteImport } from './routes/reserve/confirm'
 import { Route as ChatSessionKeyRouteImport } from './routes/chat/$sessionKey'
 import { Route as ApiWorkspaceRouteImport } from './routes/api/workspace'
 import { Route as ApiVtCapitalRouteImport } from './routes/api/vt-capital'
+import { Route as ApiVoiceStatusRouteImport } from './routes/api/voice-status'
+import { Route as ApiVoicePullRouteImport } from './routes/api/voice-pull'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as ApiTerminalStreamRouteImport } from './routes/api/terminal-stream'
 import { Route as ApiTerminalResizeRouteImport } from './routes/api/terminal-resize'
@@ -322,6 +324,16 @@ const ApiWorkspaceRoute = ApiWorkspaceRouteImport.update({
 const ApiVtCapitalRoute = ApiVtCapitalRouteImport.update({
   id: '/api/vt-capital',
   path: '/api/vt-capital',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVoiceStatusRoute = ApiVoiceStatusRouteImport.update({
+  id: '/api/voice-status',
+  path: '/api/voice-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVoicePullRoute = ApiVoicePullRouteImport.update({
+  id: '/api/voice-pull',
+  path: '/api/voice-pull',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
@@ -1072,6 +1084,8 @@ export interface FileRoutesByFullPath {
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/voice-pull': typeof ApiVoicePullRoute
+  '/api/voice-status': typeof ApiVoiceStatusRoute
   '/api/vt-capital': typeof ApiVtCapitalRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
@@ -1232,6 +1246,8 @@ export interface FileRoutesByTo {
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/voice-pull': typeof ApiVoicePullRoute
+  '/api/voice-status': typeof ApiVoiceStatusRoute
   '/api/vt-capital': typeof ApiVtCapitalRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
@@ -1394,6 +1410,8 @@ export interface FileRoutesById {
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/voice-pull': typeof ApiVoicePullRoute
+  '/api/voice-status': typeof ApiVoiceStatusRoute
   '/api/vt-capital': typeof ApiVtCapitalRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
@@ -1557,6 +1575,8 @@ export interface FileRouteTypes {
     | '/api/terminal-resize'
     | '/api/terminal-stream'
     | '/api/transcribe'
+    | '/api/voice-pull'
+    | '/api/voice-status'
     | '/api/vt-capital'
     | '/api/workspace'
     | '/chat/$sessionKey'
@@ -1717,6 +1737,8 @@ export interface FileRouteTypes {
     | '/api/terminal-resize'
     | '/api/terminal-stream'
     | '/api/transcribe'
+    | '/api/voice-pull'
+    | '/api/voice-status'
     | '/api/vt-capital'
     | '/api/workspace'
     | '/chat/$sessionKey'
@@ -1878,6 +1900,8 @@ export interface FileRouteTypes {
     | '/api/terminal-resize'
     | '/api/terminal-stream'
     | '/api/transcribe'
+    | '/api/voice-pull'
+    | '/api/voice-status'
     | '/api/vt-capital'
     | '/api/workspace'
     | '/chat/$sessionKey'
@@ -2040,6 +2064,8 @@ export interface RootRouteChildren {
   ApiTerminalResizeRoute: typeof ApiTerminalResizeRoute
   ApiTerminalStreamRoute: typeof ApiTerminalStreamRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ApiVoicePullRoute: typeof ApiVoicePullRoute
+  ApiVoiceStatusRoute: typeof ApiVoiceStatusRoute
   ApiVtCapitalRoute: typeof ApiVtCapitalRoute
   ApiWorkspaceRoute: typeof ApiWorkspaceRoute
   ChatSessionKeyRoute: typeof ChatSessionKeyRoute
@@ -2291,6 +2317,20 @@ declare module '@tanstack/react-router' {
       path: '/api/vt-capital'
       fullPath: '/api/vt-capital'
       preLoaderRoute: typeof ApiVtCapitalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/voice-status': {
+      id: '/api/voice-status'
+      path: '/api/voice-status'
+      fullPath: '/api/voice-status'
+      preLoaderRoute: typeof ApiVoiceStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/voice-pull': {
+      id: '/api/voice-pull'
+      path: '/api/voice-pull'
+      fullPath: '/api/voice-pull'
+      preLoaderRoute: typeof ApiVoicePullRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/transcribe': {
@@ -3511,6 +3551,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTerminalResizeRoute: ApiTerminalResizeRoute,
   ApiTerminalStreamRoute: ApiTerminalStreamRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  ApiVoicePullRoute: ApiVoicePullRoute,
+  ApiVoiceStatusRoute: ApiVoiceStatusRoute,
   ApiVtCapitalRoute: ApiVtCapitalRoute,
   ApiWorkspaceRoute: ApiWorkspaceRoute,
   ChatSessionKeyRoute: ChatSessionKeyRoute,
