@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ChevronDown, InformationCircleFreeIcons } from '@hugeicons/core-free-icons'
 import { MenuRoot, MenuTrigger, MenuContent, MenuItem } from '@/components/ui/menu'
+import { Autocomplete, AutocompleteInput, AutocompletePopup, AutocompleteItem, AutocompleteList, AutocompleteEmpty } from '@/components/ui/autocomplete'
 import { useMutation } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,6 +40,8 @@ type VoicePanelProps = {
   currentSettings?: Partial<VoiceSettings>
   onSettingsChange?: (settings: Partial<VoiceSettings>) => void
 }
+
+type VoiceListEntry = { name: string; relativePath: string; sizeBytes: number }
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -152,24 +155,6 @@ async function fetchVoiceStatus(agentName: string): Promise<VoiceMetadata> {
   }
 }
 
-export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
-  const [settings, setSettings] = useState<VoiceSettings>({
-    voiceId: currentSettings?.voiceId || '',
-    seedText: currentSettings?.seedText ?? DEFAULT_SEED_TEXT,
-    model: currentSettings?.model ?? DEFAULT_MODEL,
-    outputFormat: 'pcm_48000',
-    activeVoiceName: currentSettings?.activeVoiceName || agentId.toLowerCase(),
-  })
-
-  const [metadata, setMetadata] = useState<VoiceMetadata>(null)
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [pendingPull, setPendingPull] = useState(false)
-
-  // Load voice status on mount
-  useEffect(() => {
-    fetchVoiceStatus(agentId.toLowerCase()).then(setMetadata)
-  }, [agentId])
-
 /** Lightweight dropdown wrapper using Menu (themed popup). Panel-local only — not a global component. */
 type SelectFieldProps = {
   value: string
@@ -208,7 +193,32 @@ function SelectField({ value, options, onChange, disabled }: SelectFieldProps) {
   )
 }
 
-// Save mutation
+export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
+  const [settings, setSettings] = useState<VoiceSettings>({
+    voiceId: currentSettings?.voiceId || '',
+    seedText: currentSettings?.seedText ?? DEFAULT_SEED_TEXT,
+    model: currentSettings?.model ?? DEFAULT_MODEL,
+    outputFormat: 'pcm_48000',
+    activeVoiceName: currentSettings?.activeVoiceName || agentId.toLowerCase(),
+  })
+
+  const [metadata, setMetadata] = useState<VoiceMetadata>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [pendingPull, setPendingPull] = useState(false)
+  const [voiceList, setVoiceList] = useState<VoiceListEntry[]>([])
+  const [overwriteConfirm, setOverwriteConfirm] = useState<{ name: string; sizeBytes: number } | null>(null)
+
+  // Fetch voice list on mount and when activeVoiceName changes (for metadata update)
+  useEffect(() => {
+    fetch('/api/voice-list').then((r) => r.json()).then((d) => d.ok && setVoiceList(d.voices || [])).catch(() => {})
+  }, [agentId])
+
+  // Load voice status on mount
+  useEffect(() => {
+    fetchVoiceStatus(agentId.toLowerCase()).then(setMetadata)
+  }, [agentId])
+
+  // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (s: Partial<VoiceSettings>) =>
       saveVoiceSettings(agentId, s),
@@ -258,6 +268,14 @@ function SelectField({ value, options, onChange, disabled }: SelectFieldProps) {
       toast('Enter an ElevenLabs Voice ID first', { type: 'error' })
       return
     }
+
+    // Check if voice name already exists in the list
+    const existing = voiceList.find((v) => v.name === settings.activeVoiceName)
+    if (existing) {
+      setOverwriteConfirm({ name: existing.name, sizeBytes: existing.sizeBytes })
+      return
+    }
+
     setConfirmOpen(true)
     setPendingPull(true)
   }
@@ -332,13 +350,35 @@ function SelectField({ value, options, onChange, disabled }: SelectFieldProps) {
                 </TooltipRoot>
               </TooltipProvider>
             </div>
-            <Input
+            <Autocomplete
               value={settings.activeVoiceName}
+              onChange={(_, value: string) => {
+                setSettings({ ...settings, activeVoiceName: value })
+                if (value) fetchVoiceStatus(value).then(setMetadata)
+              }}
+              items={voiceList.map((v) => v.name)}
               disabled={isSaving}
-              onChange={(e) => setSettings({ ...settings, activeVoiceName: e.target.value })}
-              placeholder="agent name"
-              className="mt-1 h-9 text-sm"
-            />
+            >
+              <div className="mt-1">
+                <AutocompleteInput
+                  placeholder="agent name"
+                  showClear
+                  disabled={isSaving}
+                />
+              </div>
+              <AutocompletePopup>
+                <AutocompleteList>
+                  {voiceList.map((v) => (
+                    <AutocompleteItem key={v.name} value={v.name}>
+                      {v.name}
+                    </AutocompleteItem>
+                  ))}
+                  {voiceList.length === 0 && (
+                    <AutocompleteEmpty>No voice files found</AutocompleteEmpty>
+                  )}
+                </AutocompleteList>
+              </AutocompletePopup>
+            </Autocomplete>
             {metadata && (
               <span className="mt-1 block text-[10px] text-primary-400">
                 {metadata.codec} · {(metadata.sampleRate / 1000).toFixed(1)}kHz · {metadata.bitDepth}-bit · {formatDuration(metadata.duration)}
@@ -444,6 +484,28 @@ function SelectField({ value, options, onChange, disabled }: SelectFieldProps) {
           </div>
         </DialogContent>
       </DialogRoot>
+
+      {/* Overwrite Confirmation Dialog */}
+      {overwriteConfirm && (
+        <DialogRoot open onOpenChange={(open) => { if (!open) setOverwriteConfirm(null) }}>
+          <DialogContent>
+            <div className="p-5 space-y-3">
+              <DialogTitle>Overwrite existing voice file?</DialogTitle>
+              <DialogDescription>
+                A file named &quot;{overwriteConfirm.name}&quot; already exists ({formatFileSize(overwriteConfirm.sizeBytes)}). Overwriting will replace it permanently.
+              </DialogDescription>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button size="sm" variant="outline" onClick={() => setOverwriteConfirm(null)}>
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={() => { setOverwriteConfirm(null); setConfirmOpen(true); }}>
+                  Overwrite
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </DialogRoot>
+      )}
     </div>
   )
 }
