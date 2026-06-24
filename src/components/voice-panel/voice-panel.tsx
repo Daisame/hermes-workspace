@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ChevronDown, InformationCircleFreeIcons } from '@hugeicons/core-free-icons'
+import { MenuRoot, MenuTrigger, MenuContent, MenuItem } from '@/components/ui/menu'
 import { useMutation } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -169,7 +170,45 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
     fetchVoiceStatus(agentId.toLowerCase()).then(setMetadata)
   }, [agentId])
 
-  // Save mutation
+/** Lightweight dropdown wrapper using Menu (themed popup). Panel-local only — not a global component. */
+type SelectFieldProps = {
+  value: string
+  options: Array<{ label: string; value: string }>
+  onChange: (value: string) => void
+  disabled?: boolean
+}
+
+function SelectField({ value, options, onChange, disabled }: SelectFieldProps) {
+  return (
+    <div className="relative mt-1">
+      <MenuRoot>
+        <MenuTrigger asChild>
+          <button
+            type="button"
+            disabled={disabled}
+            className="h-9 w-full rounded-xl border border-primary-200 bg-primary-50 px-3 pr-8 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-[3px] focus:ring-primary-500/24 disabled:opacity-50"
+          >
+            {options.find((o) => o.value === value)?.label || value}
+            <HugeiconsIcon icon={ChevronDown} size={16} className="pointer-events-none absolute right-2 top-2.5 text-primary-400" />
+          </button>
+        </MenuTrigger>
+        <MenuContent side="bottom" align="start" className="min-w-(--anchor-width)">
+          {options.map((opt) => (
+            <MenuItem
+              key={opt.value}
+              style={{ fontWeight: opt.value === value ? 600 : 450 }}
+              onClick={() => onChange(opt.value)}
+            >
+              {opt.label}
+            </MenuItem>
+          ))}
+        </MenuContent>
+      </MenuRoot>
+    </div>
+  )
+}
+
+// Save mutation
   const saveMutation = useMutation({
     mutationFn: async (s: Partial<VoiceSettings>) =>
       saveVoiceSettings(agentId, s),
@@ -252,21 +291,16 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
           </label>
 
           <label className="block">
-            <span className="text-xs font-medium text-primary-600">
-              Model
-            </span>
-            <div className="relative mt-1">
-              <select
-                value={settings.model}
-                disabled={isSaving}
-                onChange={(e) => setSettings({ ...settings, model: e.target.value })}
-                className="h-9 w-full appearance-none rounded-xl border border-primary-200 bg-primary-50 px-3 pr-8 text-sm text-primary-900 outline-none transition focus:border-primary-300 disabled:opacity-50"
-              >
-                <option value="eleven_multilingual_v2">eleven_multilingual_v2</option>
-                <option value="eleven_turbo_v2_5">eleven_turbo_v2_5</option>
-              </select>
-              <HugeiconsIcon icon={ChevronDown} size={16} className="pointer-events-none absolute right-2 top-2.5 text-primary-400" />
-            </div>
+            <span className="text-xs font-medium text-primary-600">Model</span>
+            <SelectField
+              value={settings.model}
+              disabled={isSaving}
+              onChange={(v) => setSettings({ ...settings, model: v })}
+              options={[
+                { label: 'eleven_multilingual_v2', value: 'eleven_multilingual_v2' },
+                { label: 'eleven_turbo_v2_5', value: 'eleven_turbo_v2_5' },
+              ]}
+            />
           </label>
 
           <label className="block md:col-span-2">
@@ -314,22 +348,19 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
 
           <label className="block">
             <span className="text-xs font-medium text-primary-600">Output Format</span>
-            <div className="relative mt-1">
-              <select
-                value={settings.outputFormat}
-                disabled={isSaving}
-                onChange={(e) => setSettings({ ...settings, outputFormat: e.target.value })}
-                className="h-9 w-full appearance-none rounded-xl border border-primary-200 bg-primary-50 px-3 pr-8 text-sm text-primary-900 outline-none transition focus:border-primary-300 disabled:opacity-50"
-              >
-                <option value="pcm_48000">pcm_48000 — 48kHz 16-bit mono (recommended)</option>
-                <option value="pcm_44100">pcm_44100 — 44.1kHz 16-bit mono</option>
-                <option value="pcm_24000">pcm_24000 — 24kHz 16-bit mono</option>
-                <option value="pcm_16000">pcm_16000 — 16kHz 16-bit mono</option>
-                <option value="mp3_44100_128">mp3_44100_128 — 44.1kHz 128kbps MP3</option>
-                <option value="mp3_44100_192">mp3_44100_192 — 44.1kHz 192kbps MP3</option>
-              </select>
-              <HugeiconsIcon icon={ChevronDown} size={16} className="pointer-events-none absolute right-2 top-2.5 text-primary-400" />
-            </div>
+            <SelectField
+              value={settings.outputFormat}
+              disabled={isSaving}
+              onChange={(v) => setSettings({ ...settings, outputFormat: v })}
+              options={[
+                { label: 'pcm_48000 — 48kHz 16-bit mono (recommended)', value: 'pcm_48000' },
+                { label: 'pcm_44100 — 44.1kHz 16-bit mono', value: 'pcm_44100' },
+                { label: 'pcm_24000 — 24kHz 16-bit mono', value: 'pcm_24000' },
+                { label: 'pcm_16000 — 16kHz 16-bit mono', value: 'pcm_16000' },
+                { label: 'mp3_44100_128 — 44.1kHz 128kbps MP3', value: 'mp3_44100_128' },
+                { label: 'mp3_44100_192 — 44.1kHz 192kbps MP3', value: 'mp3_44100_192' },
+              ]}
+            />
           </label>
         </div>
 
