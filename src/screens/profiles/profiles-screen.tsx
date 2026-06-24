@@ -21,6 +21,8 @@ import { Input } from '@/components/ui/input'
 import { toast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
 import { useAgentRoster } from '@/lib/federation-roster'
+import { VoicePanel } from '@/components/voice-panel/voice-panel'
+import { GatewayPanel } from '@/components/gateway-panel/gateway-panel'
 
 type ProfileSummary = {
   name: string
@@ -1329,6 +1331,18 @@ export function ProfilesScreen() {
                         <p className="text-sm text-primary-400 dark:text-neutral-500">No skills configured</p>
                       )}
                     </div>
+
+                    {/* ── Voice section ─────────────────────── */}
+                    <VoicePanel
+                      agentId={(detailsName || '').toLowerCase()}
+                      currentSettings={{
+                        voiceId: (detailQuery.data?.profile?.config as any)?.tts?.elevenlabs?.voice_id ?? '',
+                        activeVoiceName: (detailQuery.data?.profile?.config as any)?.tts?.openai?.voice ?? (detailsName || '').toLowerCase(),
+                      }}
+                    />
+
+                    {/* ── Gateway section ───────────────────── */}
+                    <GatewayPanel agentId={(detailsName || '').toLowerCase()} />
 
                   </>
                 ) : null}
