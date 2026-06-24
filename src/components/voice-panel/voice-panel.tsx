@@ -4,10 +4,11 @@
  */
 import { useEffect, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ChevronDown } from '@hugeicons/core-free-icons'
+import { ChevronDown, InformationCircleFreeIcons } from '@hugeicons/core-free-icons'
 import { useMutation } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { DialogRoot, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { toast } from '@/components/ui/toast'
 
@@ -277,15 +278,26 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
               disabled={isSaving}
               onChange={(e) => setSettings({ ...settings, seedText: e.target.value })}
               rows={2}
-              className="mt-1 w-full rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900 outline-none transition resize-none focus:border-primary-300 disabled:opacity-50"
+              className="mt-1 w-full rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900 outline-none transition resize-none focus:border-primary-500 focus:ring-[3px] focus:ring-primary-500/24 disabled:opacity-50"
             />
           </label>
 
           <label className="block">
-            <span className="text-xs font-medium text-primary-600">TTS Voice Name</span>
-            <span className="mt-0.5 block text-[10px] text-primary-400">
-              MOSS TTS: voice file name (e.g. kate_narrator) · OpenAI TTS: voice (e.g. alloy)
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium text-primary-600">TTS Voice Name</span>
+              <TooltipProvider>
+                <TooltipRoot>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="rounded hover:bg-primary-200/50 p-0.5 transition-colors">
+                      <HugeiconsIcon icon={InformationCircleFreeIcons} size={14} className="text-primary-400" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[280px] whitespace-normal leading-relaxed">
+                    The filename used for this agent's voice reference file in /opt/ai/moss-tts/voices/. When pulling from ElevenLabs, the file will be saved under this name. Changing this field does not rename any existing file.
+                  </TooltipContent>
+                </TooltipRoot>
+              </TooltipProvider>
+            </div>
             <Input
               value={settings.activeVoiceName}
               disabled={isSaving}
@@ -293,6 +305,11 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
               placeholder="agent name"
               className="mt-1 h-9 text-sm"
             />
+            {metadata && (
+              <span className="mt-1 block text-[10px] text-primary-400">
+                {metadata.codec} · {(metadata.sampleRate / 1000).toFixed(1)}kHz · {metadata.bitDepth}-bit · {formatDuration(metadata.duration)}
+              </span>
+            )}
           </label>
 
           <label className="block">
