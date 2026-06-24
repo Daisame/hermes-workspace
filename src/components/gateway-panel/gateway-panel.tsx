@@ -212,7 +212,7 @@ export function GatewayPanel({ agentId }: GatewayPanelProps) {
       )}
 
       {/* Status Overview */}
-      <div className="rounded-2xl border border-primary-200 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-primary-200 bg-primary-50/80 p-4">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-primary-500">
           Gateway Status
         </h3>
@@ -241,7 +241,7 @@ export function GatewayPanel({ agentId }: GatewayPanelProps) {
         {!loading && configured && live ? (
           <div className="grid gap-4 md:grid-cols-2">
             {/* Configured Column */}
-            <div className="rounded-xl border border-primary-100 bg-primary-50/50 p-3">
+            <div className="rounded-xl border border-primary-100 bg-primary-100/60 p-3">
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-primary-400">
                 Configured (config.yaml)
               </p>
@@ -259,7 +259,7 @@ export function GatewayPanel({ agentId }: GatewayPanelProps) {
             </div>
 
             {/* Live Column */}
-            <div className="rounded-xl border border-primary-100 bg-primary-50/50 p-3">
+            <div className="rounded-xl border border-primary-100 bg-primary-100/60 p-3">
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-primary-400">
                 Live (runtime)
               </p>
@@ -284,7 +284,7 @@ export function GatewayPanel({ agentId }: GatewayPanelProps) {
 
         {/* No config state */}
         {!loading && !configured && (
-          <div className="rounded-xl border border-dashed border-primary-200 bg-primary-50/50 px-4 py-6 text-center mt-3">
+          <div className="rounded-xl border border-dashed border-primary-200 bg-primary-100/60 px-4 py-6 text-center mt-3">
             <p className="text-sm font-medium text-primary-700">No configuration found</p>
             <p className="mt-1 text-xs text-primary-500">
               Agent profile config.yaml not accessible. Check the agent&apos;s profile directory.
@@ -294,7 +294,7 @@ export function GatewayPanel({ agentId }: GatewayPanelProps) {
       </div>
 
       {/* Controls Section */}
-      <div className="rounded-2xl border border-primary-200 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-primary-200 bg-primary-50/80 p-4">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-primary-500">
           Gateway Controls
         </h3>

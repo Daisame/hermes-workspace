@@ -226,7 +226,7 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
   return (
     <div className="space-y-4">
       {/* Settings Section */}
-      <div className="rounded-2xl border border-primary-200 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-primary-200 bg-primary-50/80 p-4">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-primary-500">
           Voice Settings
         </h3>
@@ -324,7 +324,7 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
       </div>
 
       {/* Status Section */}
-      <div className="rounded-2xl border border-primary-200 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-primary-200 bg-primary-50/80 p-4">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-primary-500">
           Voice Status
         </h3>
@@ -348,7 +348,7 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-primary-200 bg-primary-50/50 px-4 py-6 text-center">
+          <div className="rounded-xl border border-dashed border-primary-200 bg-primary-100/60 px-4 py-6 text-center">
             <p className="text-sm font-medium text-primary-700">No voice file</p>
             <p className="mt-1 text-xs text-primary-500">
               Configure the ElevenLabs Voice ID above and click &quot;Pull from ElevenLabs&quot; to generate a reference clip.
