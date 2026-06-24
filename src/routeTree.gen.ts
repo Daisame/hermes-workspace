@@ -95,6 +95,8 @@ import { Route as ApiHermesTasksRouteImport } from './routes/api/hermes-tasks'
 import { Route as ApiHermesConfigRouteImport } from './routes/api/hermes-config'
 import { Route as ApiGatewayStatusRouteImport } from './routes/api/gateway-status'
 import { Route as ApiGatewayReprobeRouteImport } from './routes/api/gateway-reprobe'
+import { Route as ApiGatewayControlRouteImport } from './routes/api/gateway-control'
+import { Route as ApiGatewayAgentStatusRouteImport } from './routes/api/gateway-agent-status'
 import { Route as ApiFilesRouteImport } from './routes/api/files'
 import { Route as ApiFederationAgentsRouteImport } from './routes/api/federation-agents'
 import { Route as ApiEventsRouteImport } from './routes/api/events'
@@ -602,6 +604,16 @@ const ApiGatewayReprobeRoute = ApiGatewayReprobeRouteImport.update({
   path: '/api/gateway-reprobe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGatewayControlRoute = ApiGatewayControlRouteImport.update({
+  id: '/api/gateway-control',
+  path: '/api/gateway-control',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGatewayAgentStatusRoute = ApiGatewayAgentStatusRouteImport.update({
+  id: '/api/gateway-agent-status',
+  path: '/api/gateway-agent-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiFilesRoute = ApiFilesRouteImport.update({
   id: '/api/files',
   path: '/api/files',
@@ -1031,6 +1043,8 @@ export interface FileRoutesByFullPath {
   '/api/events': typeof ApiEventsRoute
   '/api/federation-agents': typeof ApiFederationAgentsRoute
   '/api/files': typeof ApiFilesRoute
+  '/api/gateway-agent-status': typeof ApiGatewayAgentStatusRoute
+  '/api/gateway-control': typeof ApiGatewayControlRoute
   '/api/gateway-reprobe': typeof ApiGatewayReprobeRoute
   '/api/gateway-status': typeof ApiGatewayStatusRoute
   '/api/hermes-config': typeof ApiHermesConfigRoute
@@ -1193,6 +1207,8 @@ export interface FileRoutesByTo {
   '/api/events': typeof ApiEventsRoute
   '/api/federation-agents': typeof ApiFederationAgentsRoute
   '/api/files': typeof ApiFilesRoute
+  '/api/gateway-agent-status': typeof ApiGatewayAgentStatusRoute
+  '/api/gateway-control': typeof ApiGatewayControlRoute
   '/api/gateway-reprobe': typeof ApiGatewayReprobeRoute
   '/api/gateway-status': typeof ApiGatewayStatusRoute
   '/api/hermes-config': typeof ApiHermesConfigRoute
@@ -1357,6 +1373,8 @@ export interface FileRoutesById {
   '/api/events': typeof ApiEventsRoute
   '/api/federation-agents': typeof ApiFederationAgentsRoute
   '/api/files': typeof ApiFilesRoute
+  '/api/gateway-agent-status': typeof ApiGatewayAgentStatusRoute
+  '/api/gateway-control': typeof ApiGatewayControlRoute
   '/api/gateway-reprobe': typeof ApiGatewayReprobeRoute
   '/api/gateway-status': typeof ApiGatewayStatusRoute
   '/api/hermes-config': typeof ApiHermesConfigRoute
@@ -1522,6 +1540,8 @@ export interface FileRouteTypes {
     | '/api/events'
     | '/api/federation-agents'
     | '/api/files'
+    | '/api/gateway-agent-status'
+    | '/api/gateway-control'
     | '/api/gateway-reprobe'
     | '/api/gateway-status'
     | '/api/hermes-config'
@@ -1684,6 +1704,8 @@ export interface FileRouteTypes {
     | '/api/events'
     | '/api/federation-agents'
     | '/api/files'
+    | '/api/gateway-agent-status'
+    | '/api/gateway-control'
     | '/api/gateway-reprobe'
     | '/api/gateway-status'
     | '/api/hermes-config'
@@ -1847,6 +1869,8 @@ export interface FileRouteTypes {
     | '/api/events'
     | '/api/federation-agents'
     | '/api/files'
+    | '/api/gateway-agent-status'
+    | '/api/gateway-control'
     | '/api/gateway-reprobe'
     | '/api/gateway-status'
     | '/api/hermes-config'
@@ -2011,6 +2035,8 @@ export interface RootRouteChildren {
   ApiEventsRoute: typeof ApiEventsRoute
   ApiFederationAgentsRoute: typeof ApiFederationAgentsRoute
   ApiFilesRoute: typeof ApiFilesRoute
+  ApiGatewayAgentStatusRoute: typeof ApiGatewayAgentStatusRoute
+  ApiGatewayControlRoute: typeof ApiGatewayControlRoute
   ApiGatewayReprobeRoute: typeof ApiGatewayReprobeRoute
   ApiGatewayStatusRoute: typeof ApiGatewayStatusRoute
   ApiHermesConfigRoute: typeof ApiHermesConfigRoute
@@ -2702,6 +2728,20 @@ declare module '@tanstack/react-router' {
       path: '/api/gateway-reprobe'
       fullPath: '/api/gateway-reprobe'
       preLoaderRoute: typeof ApiGatewayReprobeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/gateway-control': {
+      id: '/api/gateway-control'
+      path: '/api/gateway-control'
+      fullPath: '/api/gateway-control'
+      preLoaderRoute: typeof ApiGatewayControlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/gateway-agent-status': {
+      id: '/api/gateway-agent-status'
+      path: '/api/gateway-agent-status'
+      fullPath: '/api/gateway-agent-status'
+      preLoaderRoute: typeof ApiGatewayAgentStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/files': {
@@ -3498,6 +3538,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiEventsRoute: ApiEventsRoute,
   ApiFederationAgentsRoute: ApiFederationAgentsRoute,
   ApiFilesRoute: ApiFilesRoute,
+  ApiGatewayAgentStatusRoute: ApiGatewayAgentStatusRoute,
+  ApiGatewayControlRoute: ApiGatewayControlRoute,
   ApiGatewayReprobeRoute: ApiGatewayReprobeRoute,
   ApiGatewayStatusRoute: ApiGatewayStatusRoute,
   ApiHermesConfigRoute: ApiHermesConfigRoute,

@@ -16,6 +16,7 @@ import { toast } from '@/components/ui/toast'
 import { AgentHubLayout } from './agent-hub-layout'
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh'
 import { VoicePanel } from '@/components/voice-panel/voice-panel'
+import { GatewayPanel } from '@/components/gateway-panel/gateway-panel'
 
 type AgentGatewayEntry = {
   id?: string
@@ -1556,6 +1557,9 @@ export function AgentsScreen({ variant = 'mission-control' }: AgentsScreenProps)
                     <TabsTrigger value="voice" className="min-w-[92px] flex-1">
                       Voice
                     </TabsTrigger>
+                    <TabsTrigger value="gateway" className="min-w-[102px] flex-1">
+                      Gateway
+                    </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="overview" className="space-y-4">
@@ -1880,6 +1884,10 @@ export function AgentsScreen({ variant = 'mission-control' }: AgentsScreenProps)
 
                   <TabsContent value="voice" className="space-y-3">
                     <VoicePanel agentId={selectedConfigAgent.id || ''} currentSettings={voiceSettings} />
+                  </TabsContent>
+
+                  <TabsContent value="gateway" className="space-y-3">
+                    <GatewayPanel agentId={selectedConfigAgent.id || ''} />
                   </TabsContent>
                 </Tabs>
               )}
