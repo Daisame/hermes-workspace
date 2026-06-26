@@ -268,7 +268,7 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
     mutationFn: async () => {
       if (!settings.voiceId.trim()) throw new Error('Voice ID is required')
       return pullVoice(
-        agentId.toLowerCase(),
+        settings.activeVoiceName,
         settings.voiceId,
         settings.seedText,
         settings.model,
