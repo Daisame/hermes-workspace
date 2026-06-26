@@ -1338,6 +1338,8 @@ export function ProfilesScreen() {
                       currentSettings={{
                         voiceId: (detailQuery.data?.profile?.config as any)?.tts?.elevenlabs?.voice_id ?? '',
                         activeVoiceName: (detailQuery.data?.profile?.config as any)?.tts?.openai?.voice ?? (detailsName || '').toLowerCase(),
+                        model: ((detailQuery.data?.profile?.config as any)?.tts?.elevenlabs?.model_id as string) ?? 'eleven_multilingual_v2',
+                        seedText: (detailQuery.data?.profile?.config as any)?.tts?.elevenlabs?.seed_text,
                       }}
                     />
 

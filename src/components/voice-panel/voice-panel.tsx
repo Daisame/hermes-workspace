@@ -99,7 +99,13 @@ async function saveVoiceSettings(
     }
   }
   if (settings.activeVoiceName !== undefined) {
-    patch.tts = { ...patch.tts, openai: { voice: settings.activeVoiceName } }
+    if (!patch.tts || typeof patch.tts !== 'object') patch.tts = {}
+    ;(patch.tts as any).provider = 'openai'
+    ;(patch.tts as any).openai = {
+      base_url: 'http://10.100.1.9:8882/v1',
+      model: 'moss-tts',
+      voice: settings.activeVoiceName,
+    }
   }
 
   // Consolidate elevenlabs sub-object
