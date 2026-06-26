@@ -11,6 +11,7 @@ export type VoiceMetadata = {
   codec: string
   sampleRate: number
   bitDepth: number
+  channels: number
   duration: number
   fileSize: number
   lastPull: string
@@ -58,6 +59,7 @@ export async function getVoiceMetadata(agentName: string): Promise<VoiceMetadata
       codec: audioStream.codec_long_name || audioStream.codec_name || 'unknown',
       sampleRate: parseInt(audioStream.sample_rate, 10) || 48000,
       bitDepth: parseInt(audioStream.bits_per_sample, 10) || 16,
+      channels: parseInt(audioStream.channels, 10) || 1,
       duration: parseFloat(format.duration) || 0,
       fileSize: stat.size,
       lastPull: new Date(stat.mtime).toISOString(),

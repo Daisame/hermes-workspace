@@ -2,11 +2,10 @@
  * Voice Management Panel — ElevenLabs pull + ffprobe metadata display.
  * Renders as a tab inside the Agent Profile page.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ChevronDown, InformationCircleFreeIcons } from '@hugeicons/core-free-icons'
 import { MenuRoot, MenuTrigger, MenuContent, MenuItem } from '@/components/ui/menu'
-import { Autocomplete, AutocompleteInput, AutocompletePopup, AutocompleteItem, AutocompleteList, AutocompleteEmpty } from '@/components/ui/autocomplete'
 import { useMutation } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,6 +29,7 @@ type VoiceMetadata = {
   codec: string
   sampleRate: number
   bitDepth: number
+  channels: number
   duration: number
   fileSize: number
   lastPull: string
@@ -64,6 +64,15 @@ function formatTimestamp(iso: string): string {
   } catch {
     return iso
   }
+}
+
+/** Map codec identifiers to human-readable labels. */
+function formatCodecLabel(codec: string): string {
+  if (codec.startsWith('pcm_')) return 'WAV'
+  if (codec === 'mp3') return 'MP3'
+  if (codec === 'aac') return 'AAC'
+  if (codec === 'flac') return 'FLAC'
+  return codec.toUpperCase()
 }
 
 async function saveVoiceSettings(
@@ -165,16 +174,16 @@ type SelectFieldProps = {
 
 function SelectField({ value, options, onChange, disabled }: SelectFieldProps) {
   return (
-    <div className="relative mt-1">
+    <div className="mt-1">
       <MenuRoot>
         <MenuTrigger asChild>
           <button
             type="button"
             disabled={disabled}
-            className="h-9 w-full rounded-xl border border-primary-200 bg-primary-50 px-3 pr-8 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-[3px] focus:ring-primary-500/24 disabled:opacity-50"
+            className="relative h-9 w-full rounded-xl border border-primary-200 bg-primary-50 px-3 pr-8 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-[3px] focus:ring-primary-500/24 disabled:opacity-50"
           >
             {options.find((o) => o.value === value)?.label || value}
-            <HugeiconsIcon icon={ChevronDown} size={16} className="pointer-events-none absolute right-2 top-2.5 text-primary-400" />
+            <HugeiconsIcon icon={ChevronDown} size={16} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-primary-400" />
           </button>
         </MenuTrigger>
         <MenuContent side="bottom" align="start" className="min-w-(--anchor-width)">
@@ -193,6 +202,22 @@ function SelectField({ value, options, onChange, disabled }: SelectFieldProps) {
   )
 }
 
+const modelOptions = [
+  { label: 'eleven_v3', value: 'eleven_v3' },
+  { label: 'eleven_multilingual_v2', value: 'eleven_multilingual_v2' },
+  { label: 'eleven_turbo_v2_5', value: 'eleven_turbo_v2_5' },
+  { label: 'eleven_flash_v2_5', value: 'eleven_flash_v2_5' },
+]
+
+const outputFormatOptions = [
+  { label: 'PCM - 48kHz 16-bit mono',   value: 'pcm_48000' },
+  { label: 'PCM - 44.1kHz 16-bit mono', value: 'pcm_44100' },
+  { label: 'PCM - 24kHz 16-bit mono',   value: 'pcm_24000' },
+  { label: 'PCM - 16kHz 16-bit mono',   value: 'pcm_16000' },
+  { label: 'MP3 - 44.1kHz 128kbps',     value: 'mp3_44100_128' },
+  { label: 'MP3 - 44.1kHz 192kbps',     value: 'mp3_44100_192' },
+]
+
 export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
   const [settings, setSettings] = useState<VoiceSettings>({
     voiceId: currentSettings?.voiceId || '',
@@ -207,6 +232,12 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
   const [pendingPull, setPendingPull] = useState(false)
   const [voiceList, setVoiceList] = useState<VoiceListEntry[]>([])
   const [overwriteConfirm, setOverwriteConfirm] = useState<{ name: string; sizeBytes: number } | null>(null)
+
+  // Inline new-voice creation mode
+  const [creatingNewVoice, setCreatingNewVoice] = useState(false)
+  const [newVoiceInput, setNewVoiceInput] = useState('')
+  const [previousVoiceName, setPreviousVoiceName] = useState('')
+  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Fetch voice list on mount and when activeVoiceName changes (for metadata update)
   useEffect(() => {
@@ -284,6 +315,34 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
     pullMutation.mutate()
   }
 
+  /** Commit the typed voice name from inline edit mode. */
+  function commitNewVoiceName(value: string) {
+    const trimmed = value.trim()
+    if (trimmed) {
+      setSettings({ ...settings, activeVoiceName: trimmed })
+      fetchVoiceStatus(trimmed).then(setMetadata)
+    } else {
+      // Discard — revert to previous name
+      setSettings({ ...settings, activeVoiceName: previousVoiceName })
+    }
+    setCreatingNewVoice(false)
+    setNewVoiceInput('')
+  }
+
+  /** Cancel inline edit mode, reverting to previous name. */
+  function cancelNewVoice() {
+    setSettings({ ...settings, activeVoiceName: previousVoiceName })
+    setCreatingNewVoice(false)
+    setNewVoiceInput('')
+  }
+
+  /** Enter inline edit mode (for '+ New...' or 'Rename'). Pre-fills if provided. */
+  function startInlineEdit(prefill?: string) {
+    setPreviousVoiceName(settings.activeVoiceName)
+    setNewVoiceInput(prefill || '')
+    setCreatingNewVoice(true)
+  }
+
   const hasSettings = settings.voiceId || settings.activeVoiceName
 
   return (
@@ -314,10 +373,7 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
               value={settings.model}
               disabled={isSaving}
               onChange={(v) => setSettings({ ...settings, model: v })}
-              options={[
-                { label: 'eleven_multilingual_v2', value: 'eleven_multilingual_v2' },
-                { label: 'eleven_turbo_v2_5', value: 'eleven_turbo_v2_5' },
-              ]}
+              options={modelOptions}
             />
           </label>
 
@@ -350,38 +406,55 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
                 </TooltipRoot>
               </TooltipProvider>
             </div>
-            <Autocomplete
-              value={settings.activeVoiceName}
-              onChange={(_, value: string) => {
-                setSettings({ ...settings, activeVoiceName: value })
-                if (value) fetchVoiceStatus(value).then(setMetadata)
-              }}
-              items={voiceList.map((v) => v.name)}
-              disabled={isSaving}
-            >
-              <div className="mt-1">
-                <AutocompleteInput
-                  placeholder="agent name"
-                  showClear
-                  disabled={isSaving}
-                />
-              </div>
-              <AutocompletePopup>
-                <AutocompleteList>
-                  {voiceList.map((v) => (
-                    <AutocompleteItem key={v.name} value={v.name}>
-                      {v.name}
-                    </AutocompleteItem>
-                  ))}
-                  {voiceList.length === 0 && (
-                    <AutocompleteEmpty>No voice files found</AutocompleteEmpty>
-                  )}
-                </AutocompleteList>
-              </AutocompletePopup>
-            </Autocomplete>
+
+            {creatingNewVoice ? (
+              <input
+                type="text"
+                autoFocus
+                value={newVoiceInput}
+                onChange={(e) => setNewVoiceInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    if (blurTimeoutRef.current) { clearTimeout(blurTimeoutRef.current); blurTimeoutRef.current = null }
+                    commitNewVoiceName(newVoiceInput)
+                  } else if (e.key === 'Escape') {
+                    cancelNewVoice()
+                  }
+                }}
+                onBlur={() => {
+                  // Defer: allow clicks on SelectField dropdown to take priority
+                  blurTimeoutRef.current = setTimeout(() => {
+                    commitNewVoiceName(newVoiceInput)
+                    blurTimeoutRef.current = null
+                  }, 200)
+                }}
+                placeholder="Enter voice name..."
+                disabled={isSaving}
+                className="mt-1 h-9 w-full rounded-xl border border-primary-200 bg-primary-50 px-3 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-[3px] focus:ring-primary-500/24 disabled:opacity-50"
+              />
+            ) : (
+              <SelectField
+                value={settings.activeVoiceName}
+                disabled={isSaving}
+                onChange={(v) => {
+                  if (v === '__new__') {
+                    startInlineEdit()
+                  } else {
+                    setSettings({ ...settings, activeVoiceName: v })
+                    if (v) fetchVoiceStatus(v).then(setMetadata)
+                  }
+                }}
+                options={[
+                  ...voiceList.map((v) => ({ label: v.name, value: v.name })),
+                  { label: '+ New name...', value: '__new__' },
+                ]}
+              />
+            )}
+
             {metadata && (
               <span className="mt-1 block text-[10px] text-primary-400">
-                {metadata.codec} · {(metadata.sampleRate / 1000).toFixed(1)}kHz · {metadata.bitDepth}-bit · {formatDuration(metadata.duration)}
+                {formatCodecLabel(metadata.codec)} · {(metadata.sampleRate / 1000).toFixed(1)}kHz · {metadata.bitDepth}-bit · {metadata.channels === 1 ? 'Mono' : 'Stereo'}
               </span>
             )}
           </label>
@@ -392,14 +465,7 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
               value={settings.outputFormat}
               disabled={isSaving}
               onChange={(v) => setSettings({ ...settings, outputFormat: v })}
-              options={[
-                { label: 'pcm_48000 — 48kHz 16-bit mono (recommended)', value: 'pcm_48000' },
-                { label: 'pcm_44100 — 44.1kHz 16-bit mono', value: 'pcm_44100' },
-                { label: 'pcm_24000 — 24kHz 16-bit mono', value: 'pcm_24000' },
-                { label: 'pcm_16000 — 16kHz 16-bit mono', value: 'pcm_16000' },
-                { label: 'mp3_44100_128 — 44.1kHz 128kbps MP3', value: 'mp3_44100_128' },
-                { label: 'mp3_44100_192 — 44.1kHz 192kbps MP3', value: 'mp3_44100_192' },
-              ]}
+              options={outputFormatOptions}
             />
           </label>
         </div>
@@ -443,6 +509,7 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
               ['Codec', metadata.codec],
               ['Sample Rate', `${metadata.sampleRate} Hz`],
               ['Bit Depth', `${metadata.bitDepth}-bit`],
+              ['Channels', metadata.channels === 1 ? 'Mono' : `${metadata.channels}-channel`],
               ['Duration', formatDuration(metadata.duration)],
               ['File Size', formatFileSize(metadata.fileSize)],
               ['Last Pulled', formatTimestamp(metadata.lastPull)],
@@ -497,6 +564,12 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
               <div className="flex justify-end gap-2 pt-2">
                 <Button size="sm" variant="outline" onClick={() => setOverwriteConfirm(null)}>
                   Cancel
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => {
+                  setOverwriteConfirm(null)
+                  startInlineEdit(overwriteConfirm.name)
+                }}>
+                  Rename
                 </Button>
                 <Button size="sm" onClick={() => { setOverwriteConfirm(null); setConfirmOpen(true); }}>
                   Overwrite
