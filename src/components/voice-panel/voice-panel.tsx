@@ -16,6 +16,7 @@ import { toast } from '@/components/ui/toast'
 const DEFAULT_SEED_TEXT =
   'The quick beige fox jumps over the lazy dog, while technical metrics show zero acoustic drift across the localized subnets.'
 const DEFAULT_MODEL = 'eleven_multilingual_v2'
+const ELEVENLABS_VOICE_ID_LENGTH = 20
 
 type VoiceSettings = {
   voiceId: string
@@ -255,19 +256,12 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
     fetchVoiceStatus(agentId.toLowerCase()).then(setMetadata)
   }, [agentId])
 
-  // Save mutation
-  const saveMutation = useMutation({
-    mutationFn: async (s: Partial<VoiceSettings>) =>
-      saveVoiceSettings(agentId, s),
-    onSuccess: () => {
-      toast('Voice settings saved', { type: 'success' })
-    },
-    onError: (error) => {
-      toast(error instanceof Error ? error.message : 'Failed to save voice settings', {
-        type: 'error',
-      })
-    },
-  })
+  // Save helper — calls saveVoiceSettings directly with toast feedback
+  function saveField(field: Partial<VoiceSettings>) {
+    saveVoiceSettings(agentId, field)
+      .then(() => toast('Voice settings saved', { type: 'success' }))
+      .catch((error) => toast(error instanceof Error ? error.message : 'Failed to save voice settings', { type: 'error' }))
+  }
 
   // Pull mutation
   const pullMutation = useMutation({
@@ -294,11 +288,7 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
     },
   })
 
-  const isSaving = saveMutation.isPending || pullMutation.isPending
-
-  function handleSave() {
-    saveMutation.mutate(settings)
-  }
+  const isPulling = pullMutation.isPending
 
   function handlePull() {
     if (!settings.voiceId.trim()) {
@@ -327,6 +317,7 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
     if (trimmed) {
       setSettings({ ...settings, activeVoiceName: trimmed })
       fetchVoiceStatus(trimmed).then(setMetadata)
+      saveField({ activeVoiceName: trimmed })
     } else {
       // Discard — revert to previous name
       setSettings({ ...settings, activeVoiceName: previousVoiceName })
@@ -349,8 +340,6 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
     setCreatingNewVoice(true)
   }
 
-  const hasSettings = settings.voiceId || settings.activeVoiceName
-
   return (
     <div className="space-y-4">
       {/* Settings Section */}
@@ -366,8 +355,13 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
             </span>
             <Input
               value={settings.voiceId}
-              disabled={isSaving}
+              disabled={isPulling}
               onChange={(e) => setSettings({ ...settings, voiceId: e.target.value })}
+              onBlur={() => {
+                if (settings.voiceId.length === ELEVENLABS_VOICE_ID_LENGTH) {
+                  saveField({ voiceId: settings.voiceId })
+                }
+              }}
               placeholder="e.g. 21m00Tcm4TlvDq8ikWAM"
               className="mt-1 h-9 text-sm"
             />
@@ -377,8 +371,11 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
             <span className="text-xs font-medium text-primary-600">Model</span>
             <SelectField
               value={settings.model}
-              disabled={isSaving}
-              onChange={(v) => setSettings({ ...settings, model: v })}
+              disabled={isPulling}
+              onChange={(v) => {
+                setSettings({ ...settings, model: v })
+                saveField({ model: v })
+              }}
               options={modelOptions}
             />
           </label>
@@ -389,8 +386,9 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
             </span>
             <textarea
               value={settings.seedText}
-              disabled={isSaving}
+              disabled={isPulling}
               onChange={(e) => setSettings({ ...settings, seedText: e.target.value })}
+              onBlur={() => saveField({ seedText: settings.seedText })}
               rows={2}
               className="mt-1 w-full rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900 outline-none transition resize-none focus:border-primary-500 focus:ring-[3px] focus:ring-primary-500/24 disabled:opacity-50"
             />
@@ -436,19 +434,20 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
                   }, 200)
                 }}
                 placeholder="Enter voice name..."
-                disabled={isSaving}
+                disabled={isPulling}
                 className="mt-1 h-9 w-full rounded-xl border border-primary-200 bg-primary-50 px-3 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-[3px] focus:ring-primary-500/24 disabled:opacity-50"
               />
             ) : (
               <SelectField
                 value={settings.activeVoiceName}
-                disabled={isSaving}
+                disabled={isPulling}
                 onChange={(v) => {
                   if (v === '__new__') {
                     startInlineEdit()
                   } else {
                     setSettings({ ...settings, activeVoiceName: v })
                     if (v) fetchVoiceStatus(v).then(setMetadata)
+                    saveField({ activeVoiceName: v })
                   }
                 }}
                 options={[
@@ -469,8 +468,11 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
             <span className="text-xs font-medium text-primary-600">Output Format</span>
             <SelectField
               value={settings.outputFormat}
-              disabled={isSaving}
-              onChange={(v) => setSettings({ ...settings, outputFormat: v })}
+              disabled={isPulling}
+              onChange={(v) => {
+                setSettings({ ...settings, outputFormat: v })
+                saveField({ outputFormat: v })
+              }}
               options={outputFormatOptions}
             />
           </label>
@@ -479,17 +481,8 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
         <div className="mt-4 flex gap-3">
           <Button
             size="sm"
-            onClick={handleSave}
-            disabled={!hasSettings || isSaving}
-            variant="outline"
-          >
-            {saveMutation.isPending ? 'Saving...' : 'Save Settings'}
-          </Button>
-
-          <Button
-            size="sm"
             onClick={handlePull}
-            disabled={isSaving}
+            disabled={isPulling}
           >
             {pullMutation.isPending ? (
               <span className="flex items-center gap-2">
