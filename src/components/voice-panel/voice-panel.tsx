@@ -264,6 +264,9 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
   const [pendingPull, setPendingPull] = useState(false)
   const [voiceList, setVoiceList] = useState<VoiceListEntry[]>([])
   const [overwriteConfirm, setOverwriteConfirm] = useState<{ name: string; sizeBytes: number } | null>(null)
+  // Delete voice confirmation state
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   // Inline new-voice creation mode
@@ -381,6 +384,45 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
     setSettings({ ...settings, activeVoiceName: previousVoiceName })
     setCreatingNewVoice(false)
     setNewVoiceInput('')
+  }
+
+  /** Delete a voice directory via /api/voice-delete. Shows confirmation dialog first. */
+  async function handleDeleteVoice(voiceName: string) {
+    if (voiceName === 'default') {
+      toast("Cannot delete 'default' — system fallback", { type: 'error' })
+      return
+    }
+    setDeleteConfirm(voiceName)
+  }
+
+  async function confirmDeleteVoice() {
+    async function confirmDeleteVoice() {
+      const voiceName = deleteConfirm!
+      setIsDeleting(true)
+      try {
+        const res = await fetch('/api/voice-delete', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ voiceName }),
+        })
+        const data = await res.json()
+        if (!res.ok || !data.ok) {
+          toast(data.error || 'Failed to delete voice', { type: 'error' })
+          return
+        }
+        // Refresh voice list and clear metadata if deleted voice was active
+        fetch('/api/voice-list').then((r) => r.json()).then((d) => d.ok && setVoiceList(d.voices || [])).catch(() => {})
+        if (settings.activeVoiceName === voiceName) {
+          setMetadata(null)
+        }
+        toast(`Deleted '${voiceName}'`, { type: 'success' })
+      } catch {
+        toast('Failed to delete voice', { type: 'error' })
+      } finally {
+        setIsDeleting(false)
+        setDeleteConfirm(null)
+      }
+    }
   }
 
   /** Enter inline edit mode (for '+ New...' or 'Rename'). Pre-fills if provided. */
@@ -602,6 +644,20 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
             </p>
           </div>
         )}
+
+        {/* Delete Voice Button */}
+        {settings.activeVoiceName && settings.activeVoiceName !== 'default' && (
+          <div className="mt-4 pt-3 border-t border-primary-200">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleDeleteVoice(settings.activeVoiceName)}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+            >
+              Delete Voice &quot;{settings.activeVoiceName}&quot;
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Confirmation Dialog */}
@@ -645,6 +701,32 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
                 </Button>
                 <Button size="sm" onClick={() => { setOverwriteConfirm(null); setConfirmOpen(true); }}>
                   Overwrite
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </DialogRoot>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm && (
+        <DialogRoot open onOpenChange={(open) => { if (!open) setDeleteConfirm(null) }}>
+          <DialogContent>
+            <div className="p-5 space-y-3">
+              <DialogTitle>Delete voice &quot;{deleteConfirm}&quot;?</DialogTitle>
+              <DialogDescription>
+                This will permanently delete the voice file for &quot;{deleteConfirm}&quot;. If this voice is referenced by agent configurations, TTS will fall back to &quot;default&quot; until reconfigured. This cannot be undone.
+              </DialogDescription>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button size="sm" variant="outline" onClick={() => setDeleteConfirm(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={confirmDeleteVoice}
+                >
+                  Delete Permanently
                 </Button>
               </div>
             </div>
