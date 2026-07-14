@@ -396,32 +396,30 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
   }
 
   async function confirmDeleteVoice() {
-    async function confirmDeleteVoice() {
-      const voiceName = deleteConfirm!
-      setIsDeleting(true)
-      try {
-        const res = await fetch('/api/voice-delete', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ voiceName }),
-        })
-        const data = await res.json()
-        if (!res.ok || !data.ok) {
-          toast(data.error || 'Failed to delete voice', { type: 'error' })
-          return
-        }
-        // Refresh voice list and clear metadata if deleted voice was active
-        fetch('/api/voice-list').then((r) => r.json()).then((d) => d.ok && setVoiceList(d.voices || [])).catch(() => {})
-        if (settings.activeVoiceName === voiceName) {
-          setMetadata(null)
-        }
-        toast(`Deleted '${voiceName}'`, { type: 'success' })
-      } catch {
-        toast('Failed to delete voice', { type: 'error' })
-      } finally {
-        setIsDeleting(false)
-        setDeleteConfirm(null)
+    const voiceName = deleteConfirm!
+    setIsDeleting(true)
+    try {
+      const res = await fetch('/api/voice-delete', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ voiceName }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        toast(data.error || 'Failed to delete voice', { type: 'error' })
+        return
       }
+      // Refresh voice list and clear metadata if deleted voice was active
+      fetch('/api/voice-list').then((r) => r.json()).then((d) => d.ok && setVoiceList(d.voices || [])).catch(() => {})
+      if (settings.activeVoiceName === voiceName) {
+        setMetadata(null)
+      }
+      toast(`Deleted '${voiceName}'`, { type: 'success' })
+    } catch {
+      toast('Failed to delete voice', { type: 'error' })
+    } finally {
+      setIsDeleting(false)
+      setDeleteConfirm(null)
     }
   }
 
