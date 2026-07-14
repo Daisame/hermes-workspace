@@ -103,6 +103,13 @@ async function saveVoiceSettings(
     if (!patch.tts || typeof patch.tts !== 'object') patch.tts = {}
     ;(patch.tts as any).provider = 'higgs-local'
     ;(patch.tts as any).voice = settings.activeVoiceName
+    // Also write to provider sub-dict — Hermes command-provider reads voice from there (tts_tool.py L818)
+    if (!(patch.tts as any).providers || typeof (patch.tts as any).providers !== 'object') {
+      ;(patch.tts as any).providers = {}
+    }
+    const prov = ((patch.tts as any).providers as Record<string, any>)['higgs-local'] || {}
+    ;(prov as Record<string, unknown>).voice = settings.activeVoiceName
+    ;(patch.tts as any).providers['higgs-local'] = prov
   }
 
   // Consolidate elevenlabs sub-object
