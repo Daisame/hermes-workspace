@@ -101,12 +101,8 @@ async function saveVoiceSettings(
   }
   if (settings.activeVoiceName !== undefined) {
     if (!patch.tts || typeof patch.tts !== 'object') patch.tts = {}
-    ;(patch.tts as any).provider = 'openai'
-    ;(patch.tts as any).openai = {
-      base_url: 'http://10.100.1.9:8882/v1',
-      model: 'moss-tts',
-      voice: settings.activeVoiceName,
-    }
+    ;(patch.tts as any).provider = 'higgs-local'
+    ;(patch.tts as any).voice = settings.activeVoiceName
   }
 
   // Consolidate elevenlabs sub-object
@@ -169,6 +165,28 @@ async function fetchVoiceStatus(agentName: string): Promise<VoiceMetadata> {
   } catch {
     return null
   }
+}
+
+async function uploadVoiceFile(
+  agentName: string,
+  file: File,
+): Promise<{ metadata: VoiceMetadata }> {
+  const formData = new FormData()
+  formData.append('agentName', agentName)
+  formData.append('file', file)
+
+  const response = await fetch('/api/voice-upload', {
+    method: 'POST',
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.error || `HTTP ${response.status}`)
+  }
+
+  const data = await response.json()
+  return { metadata: data.metadata }
 }
 
 /** Lightweight dropdown wrapper using Menu (themed popup). Panel-local only — not a global component. */
@@ -239,6 +257,7 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
   const [pendingPull, setPendingPull] = useState(false)
   const [voiceList, setVoiceList] = useState<VoiceListEntry[]>([])
   const [overwriteConfirm, setOverwriteConfirm] = useState<{ name: string; sizeBytes: number } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   // Inline new-voice creation mode
   const [creatingNewVoice, setCreatingNewVoice] = useState(false)
@@ -289,6 +308,30 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
   })
 
   const isPulling = pullMutation.isPending
+
+  // Upload mutation (local file → /opt/ai/shared/voices/<slug>/reference.wav)
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      return uploadVoiceFile(settings.activeVoiceName, file)
+    },
+    onSuccess: (result) => {
+      setMetadata(result.metadata)
+      toast(`Voice uploaded for ${agentId}`, { type: 'success' })
+    },
+    onError: (error) => {
+      toast(error instanceof Error ? error.message : 'Upload failed', { type: 'error' })
+    },
+  })
+
+  const isUploading = uploadMutation.isPending
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    uploadMutation.mutate(file)
+    // Reset input so the same file can trigger onChange again
+    e.target.value = ''
+  }
 
   function handlePull() {
     if (!settings.voiceId.trim()) {
@@ -405,7 +448,7 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-[280px] whitespace-normal leading-relaxed">
-                    The filename used for this agent's voice reference file in /opt/ai/moss-tts/voices/. When pulling from ElevenLabs, the file will be saved under this name. Changing this field does not rename any existing file.
+                    The voice slug used for this agent's reference file in /opt/ai/shared/voices/. When pulling from ElevenLabs, the file will be saved as &lt;slug&gt;/reference.wav. Changing this field does not rename any existing file.
                   </TooltipContent>
                 </TooltipRoot>
               </TooltipProvider>
@@ -478,11 +521,11 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
           </label>
         </div>
 
-        <div className="mt-4 flex gap-3">
+        <div className="mt-4 flex gap-3 items-center">
           <Button
             size="sm"
             onClick={handlePull}
-            disabled={isPulling}
+            disabled={isPulling || isUploading}
           >
             {pullMutation.isPending ? (
               <span className="flex items-center gap-2">
@@ -491,6 +534,29 @@ export function VoicePanel({ agentId, currentSettings }: VoicePanelProps) {
               </span>
             ) : (
               'Pull from ElevenLabs'
+            )}
+          </Button>
+
+          <input
+            type="file"
+            accept=".wav"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading || isPulling}
+          >
+            {uploadMutation.isPending ? (
+              <span className="flex items-center gap-2">
+                <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+                Uploading...
+              </span>
+            ) : (
+              'Upload local WAV'
             )}
           </Button>
         </div>

@@ -8,7 +8,7 @@ import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../server/auth-middleware'
 import { getVoiceMetadata } from '../../server/voice-utils'
 
-const VOICES_DIR = '/opt/ai/moss-tts/voices'
+const VOICES_DIR = '/opt/ai/shared/voices'
 
 export const Route = createFileRoute('/api/voice-status')({
   server: {
@@ -30,7 +30,7 @@ export const Route = createFileRoute('/api/voice-status')({
         return json({
           ok: true,
           agentName,
-          voiceFile: path.join(VOICES_DIR, `${agentName}.wav`),
+          voiceFile: path.join(VOICES_DIR, agentName, 'reference.wav'),
           hasVoice: !!metadata,
           metadata,
         })

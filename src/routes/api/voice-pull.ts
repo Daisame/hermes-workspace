@@ -9,7 +9,7 @@ import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../server/auth-middleware'
 import { runCommand, getVoiceMetadata } from '../../server/voice-utils'
 
-const VOICES_DIR = '/opt/ai/moss-tts/voices'
+const VOICES_DIR = '/opt/ai/shared/voices'
 const PULL_SCRIPT = '/opt/ai/bin/elevenlabs-pull'
 const DEFAULT_SEED_TEXT =
   'The quick beige fox jumps over the lazy dog, while technical metrics show zero acoustic drift across the localized subnets.'
@@ -78,7 +78,7 @@ export const Route = createFileRoute('/api/voice-pull')({
         return json({
           ok: true,
           message: `Voice pulled for ${agentName}`,
-          voiceFile: path.join(VOICES_DIR, `${agentName}.wav`),
+          voiceFile: path.join(VOICES_DIR, agentName, 'reference.wav'),
           metadata,
           pullOutput: pullResult.stdout.trim(),
         })

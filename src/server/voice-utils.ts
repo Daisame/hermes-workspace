@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 
-const VOICES_DIR = '/opt/ai/moss-tts/voices'
+const VOICES_DIR = '/opt/ai/shared/voices'
 
 export type VoiceMetadata = {
   codec: string
@@ -36,7 +36,7 @@ export function runCommand(
 }
 
 export async function getVoiceMetadata(agentName: string): Promise<VoiceMetadata> {
-  const wavPath = path.join(VOICES_DIR, `${agentName}.wav`)
+  const wavPath = path.join(VOICES_DIR, agentName, 'reference.wav')
   if (!fs.existsSync(wavPath)) return null
 
   try {
