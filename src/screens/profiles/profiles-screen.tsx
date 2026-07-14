@@ -1337,7 +1337,7 @@ export function ProfilesScreen() {
                       agentId={(detailsName || '').toLowerCase()}
                       currentSettings={{
                         voiceId: (detailQuery.data?.profile?.config as any)?.tts?.elevenlabs?.voice_id ?? '',
-                        activeVoiceName: (detailQuery.data?.profile?.config as any)?.tts?.openai?.voice ?? (detailsName || '').toLowerCase(),
+                        activeVoiceName: (detailQuery.data?.profile?.config as any)?.tts?.voice ?? (detailsName || '').toLowerCase(),
                         model: ((detailQuery.data?.profile?.config as any)?.tts?.elevenlabs?.model_id as string) ?? 'eleven_multilingual_v2',
                         seedText: (detailQuery.data?.profile?.config as any)?.tts?.elevenlabs?.seed_text,
                       }}
