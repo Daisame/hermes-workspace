@@ -40,8 +40,11 @@ import { Route as ReserveConfirmRouteImport } from './routes/reserve/confirm'
 import { Route as ChatSessionKeyRouteImport } from './routes/chat/$sessionKey'
 import { Route as ApiWorkspaceRouteImport } from './routes/api/workspace'
 import { Route as ApiVtCapitalRouteImport } from './routes/api/vt-capital'
+import { Route as ApiVoiceUploadRouteImport } from './routes/api/voice-upload'
 import { Route as ApiVoiceStatusRouteImport } from './routes/api/voice-status'
 import { Route as ApiVoicePullRouteImport } from './routes/api/voice-pull'
+import { Route as ApiVoiceListRouteImport } from './routes/api/voice-list'
+import { Route as ApiVoiceDeleteRouteImport } from './routes/api/voice-delete'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as ApiTerminalStreamRouteImport } from './routes/api/terminal-stream'
 import { Route as ApiTerminalResizeRouteImport } from './routes/api/terminal-resize'
@@ -136,6 +139,7 @@ import { Route as ApiProfilesCreateRouteImport } from './routes/api/profiles/cre
 import { Route as ApiProfilesActivateRouteImport } from './routes/api/profiles/activate'
 import { Route as ApiOauthPollTokenRouteImport } from './routes/api/oauth.poll-token'
 import { Route as ApiOauthDeviceCodeRouteImport } from './routes/api/oauth.device-code'
+import { Route as ApiModelsListRouteImport } from './routes/api/models/list'
 import { Route as ApiModelInfoRouteImport } from './routes/api/model/info'
 import { Route as ApiMemoryWriteRouteImport } from './routes/api/memory/write'
 import { Route as ApiMemorySearchRouteImport } from './routes/api/memory/search'
@@ -328,6 +332,11 @@ const ApiVtCapitalRoute = ApiVtCapitalRouteImport.update({
   path: '/api/vt-capital',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVoiceUploadRoute = ApiVoiceUploadRouteImport.update({
+  id: '/api/voice-upload',
+  path: '/api/voice-upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiVoiceStatusRoute = ApiVoiceStatusRouteImport.update({
   id: '/api/voice-status',
   path: '/api/voice-status',
@@ -336,6 +345,16 @@ const ApiVoiceStatusRoute = ApiVoiceStatusRouteImport.update({
 const ApiVoicePullRoute = ApiVoicePullRouteImport.update({
   id: '/api/voice-pull',
   path: '/api/voice-pull',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVoiceListRoute = ApiVoiceListRouteImport.update({
+  id: '/api/voice-list',
+  path: '/api/voice-list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVoiceDeleteRoute = ApiVoiceDeleteRouteImport.update({
+  id: '/api/voice-delete',
+  path: '/api/voice-delete',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
@@ -809,6 +828,11 @@ const ApiOauthDeviceCodeRoute = ApiOauthDeviceCodeRouteImport.update({
   path: '/api/oauth/device-code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiModelsListRoute = ApiModelsListRouteImport.update({
+  id: '/list',
+  path: '/list',
+  getParentRoute: () => ApiModelsRoute,
+} as any)
 const ApiModelInfoRoute = ApiModelInfoRouteImport.update({
   id: '/api/model/info',
   path: '/api/model/info',
@@ -1055,7 +1079,7 @@ export interface FileRoutesByFullPath {
   '/api/mcp': typeof ApiMcpRouteWithChildren
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRouteWithChildren
-  '/api/models': typeof ApiModelsRoute
+  '/api/models': typeof ApiModelsRouteWithChildren
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
   '/api/playground-admin': typeof ApiPlaygroundAdminRoute
@@ -1098,8 +1122,11 @@ export interface FileRoutesByFullPath {
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/voice-delete': typeof ApiVoiceDeleteRoute
+  '/api/voice-list': typeof ApiVoiceListRoute
   '/api/voice-pull': typeof ApiVoicePullRoute
   '/api/voice-status': typeof ApiVoiceStatusRoute
+  '/api/voice-upload': typeof ApiVoiceUploadRoute
   '/api/vt-capital': typeof ApiVtCapitalRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
@@ -1133,6 +1160,7 @@ export interface FileRoutesByFullPath {
   '/api/memory/search': typeof ApiMemorySearchRoute
   '/api/memory/write': typeof ApiMemoryWriteRoute
   '/api/model/info': typeof ApiModelInfoRoute
+  '/api/models/list': typeof ApiModelsListRoute
   '/api/oauth/device-code': typeof ApiOauthDeviceCodeRoute
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
   '/api/profiles/activate': typeof ApiProfilesActivateRoute
@@ -1219,7 +1247,7 @@ export interface FileRoutesByTo {
   '/api/mcp': typeof ApiMcpRouteWithChildren
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRouteWithChildren
-  '/api/models': typeof ApiModelsRoute
+  '/api/models': typeof ApiModelsRouteWithChildren
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
   '/api/playground-admin': typeof ApiPlaygroundAdminRoute
@@ -1262,8 +1290,11 @@ export interface FileRoutesByTo {
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/voice-delete': typeof ApiVoiceDeleteRoute
+  '/api/voice-list': typeof ApiVoiceListRoute
   '/api/voice-pull': typeof ApiVoicePullRoute
   '/api/voice-status': typeof ApiVoiceStatusRoute
+  '/api/voice-upload': typeof ApiVoiceUploadRoute
   '/api/vt-capital': typeof ApiVtCapitalRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
@@ -1297,6 +1328,7 @@ export interface FileRoutesByTo {
   '/api/memory/search': typeof ApiMemorySearchRoute
   '/api/memory/write': typeof ApiMemoryWriteRoute
   '/api/model/info': typeof ApiModelInfoRoute
+  '/api/models/list': typeof ApiModelsListRoute
   '/api/oauth/device-code': typeof ApiOauthDeviceCodeRoute
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
   '/api/profiles/activate': typeof ApiProfilesActivateRoute
@@ -1385,7 +1417,7 @@ export interface FileRoutesById {
   '/api/mcp': typeof ApiMcpRouteWithChildren
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRouteWithChildren
-  '/api/models': typeof ApiModelsRoute
+  '/api/models': typeof ApiModelsRouteWithChildren
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
   '/api/playground-admin': typeof ApiPlaygroundAdminRoute
@@ -1428,8 +1460,11 @@ export interface FileRoutesById {
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/voice-delete': typeof ApiVoiceDeleteRoute
+  '/api/voice-list': typeof ApiVoiceListRoute
   '/api/voice-pull': typeof ApiVoicePullRoute
   '/api/voice-status': typeof ApiVoiceStatusRoute
+  '/api/voice-upload': typeof ApiVoiceUploadRoute
   '/api/vt-capital': typeof ApiVtCapitalRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
@@ -1463,6 +1498,7 @@ export interface FileRoutesById {
   '/api/memory/search': typeof ApiMemorySearchRoute
   '/api/memory/write': typeof ApiMemoryWriteRoute
   '/api/model/info': typeof ApiModelInfoRoute
+  '/api/models/list': typeof ApiModelsListRoute
   '/api/oauth/device-code': typeof ApiOauthDeviceCodeRoute
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
   '/api/profiles/activate': typeof ApiProfilesActivateRoute
@@ -1595,8 +1631,11 @@ export interface FileRouteTypes {
     | '/api/terminal-resize'
     | '/api/terminal-stream'
     | '/api/transcribe'
+    | '/api/voice-delete'
+    | '/api/voice-list'
     | '/api/voice-pull'
     | '/api/voice-status'
+    | '/api/voice-upload'
     | '/api/vt-capital'
     | '/api/workspace'
     | '/chat/$sessionKey'
@@ -1630,6 +1669,7 @@ export interface FileRouteTypes {
     | '/api/memory/search'
     | '/api/memory/write'
     | '/api/model/info'
+    | '/api/models/list'
     | '/api/oauth/device-code'
     | '/api/oauth/poll-token'
     | '/api/profiles/activate'
@@ -1759,8 +1799,11 @@ export interface FileRouteTypes {
     | '/api/terminal-resize'
     | '/api/terminal-stream'
     | '/api/transcribe'
+    | '/api/voice-delete'
+    | '/api/voice-list'
     | '/api/voice-pull'
     | '/api/voice-status'
+    | '/api/voice-upload'
     | '/api/vt-capital'
     | '/api/workspace'
     | '/chat/$sessionKey'
@@ -1794,6 +1837,7 @@ export interface FileRouteTypes {
     | '/api/memory/search'
     | '/api/memory/write'
     | '/api/model/info'
+    | '/api/models/list'
     | '/api/oauth/device-code'
     | '/api/oauth/poll-token'
     | '/api/profiles/activate'
@@ -1924,8 +1968,11 @@ export interface FileRouteTypes {
     | '/api/terminal-resize'
     | '/api/terminal-stream'
     | '/api/transcribe'
+    | '/api/voice-delete'
+    | '/api/voice-list'
     | '/api/voice-pull'
     | '/api/voice-status'
+    | '/api/voice-upload'
     | '/api/vt-capital'
     | '/api/workspace'
     | '/chat/$sessionKey'
@@ -1959,6 +2006,7 @@ export interface FileRouteTypes {
     | '/api/memory/search'
     | '/api/memory/write'
     | '/api/model/info'
+    | '/api/models/list'
     | '/api/oauth/device-code'
     | '/api/oauth/poll-token'
     | '/api/profiles/activate'
@@ -2047,7 +2095,7 @@ export interface RootRouteChildren {
   ApiMcpRoute: typeof ApiMcpRouteWithChildren
   ApiMediaRoute: typeof ApiMediaRoute
   ApiMemoryRoute: typeof ApiMemoryRouteWithChildren
-  ApiModelsRoute: typeof ApiModelsRoute
+  ApiModelsRoute: typeof ApiModelsRouteWithChildren
   ApiPathsRoute: typeof ApiPathsRoute
   ApiPingRoute: typeof ApiPingRoute
   ApiPlaygroundAdminRoute: typeof ApiPlaygroundAdminRoute
@@ -2090,8 +2138,11 @@ export interface RootRouteChildren {
   ApiTerminalResizeRoute: typeof ApiTerminalResizeRoute
   ApiTerminalStreamRoute: typeof ApiTerminalStreamRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ApiVoiceDeleteRoute: typeof ApiVoiceDeleteRoute
+  ApiVoiceListRoute: typeof ApiVoiceListRoute
   ApiVoicePullRoute: typeof ApiVoicePullRoute
   ApiVoiceStatusRoute: typeof ApiVoiceStatusRoute
+  ApiVoiceUploadRoute: typeof ApiVoiceUploadRoute
   ApiVtCapitalRoute: typeof ApiVtCapitalRoute
   ApiWorkspaceRoute: typeof ApiWorkspaceRoute
   ChatSessionKeyRoute: typeof ChatSessionKeyRoute
@@ -2345,6 +2396,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiVtCapitalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/voice-upload': {
+      id: '/api/voice-upload'
+      path: '/api/voice-upload'
+      fullPath: '/api/voice-upload'
+      preLoaderRoute: typeof ApiVoiceUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/voice-status': {
       id: '/api/voice-status'
       path: '/api/voice-status'
@@ -2357,6 +2415,20 @@ declare module '@tanstack/react-router' {
       path: '/api/voice-pull'
       fullPath: '/api/voice-pull'
       preLoaderRoute: typeof ApiVoicePullRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/voice-list': {
+      id: '/api/voice-list'
+      path: '/api/voice-list'
+      fullPath: '/api/voice-list'
+      preLoaderRoute: typeof ApiVoiceListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/voice-delete': {
+      id: '/api/voice-delete'
+      path: '/api/voice-delete'
+      fullPath: '/api/voice-delete'
+      preLoaderRoute: typeof ApiVoiceDeleteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/transcribe': {
@@ -3017,6 +3089,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOauthDeviceCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/models/list': {
+      id: '/api/models/list'
+      path: '/list'
+      fullPath: '/api/models/list'
+      preLoaderRoute: typeof ApiModelsListRouteImport
+      parentRoute: typeof ApiModelsRoute
+    }
     '/api/model/info': {
       id: '/api/model/info'
       path: '/api/model/info'
@@ -3409,6 +3488,18 @@ const ApiMemoryRouteWithChildren = ApiMemoryRoute._addFileChildren(
   ApiMemoryRouteChildren,
 )
 
+interface ApiModelsRouteChildren {
+  ApiModelsListRoute: typeof ApiModelsListRoute
+}
+
+const ApiModelsRouteChildren: ApiModelsRouteChildren = {
+  ApiModelsListRoute: ApiModelsListRoute,
+}
+
+const ApiModelsRouteWithChildren = ApiModelsRoute._addFileChildren(
+  ApiModelsRouteChildren,
+)
+
 interface ApiSessionsRouteChildren {
   ApiSessionsSendRoute: typeof ApiSessionsSendRoute
   ApiSessionsSessionKeyActiveRunRoute: typeof ApiSessionsSessionKeyActiveRunRoute
@@ -3550,7 +3641,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMcpRoute: ApiMcpRouteWithChildren,
   ApiMediaRoute: ApiMediaRoute,
   ApiMemoryRoute: ApiMemoryRouteWithChildren,
-  ApiModelsRoute: ApiModelsRoute,
+  ApiModelsRoute: ApiModelsRouteWithChildren,
   ApiPathsRoute: ApiPathsRoute,
   ApiPingRoute: ApiPingRoute,
   ApiPlaygroundAdminRoute: ApiPlaygroundAdminRoute,
@@ -3593,8 +3684,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTerminalResizeRoute: ApiTerminalResizeRoute,
   ApiTerminalStreamRoute: ApiTerminalStreamRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  ApiVoiceDeleteRoute: ApiVoiceDeleteRoute,
+  ApiVoiceListRoute: ApiVoiceListRoute,
   ApiVoicePullRoute: ApiVoicePullRoute,
   ApiVoiceStatusRoute: ApiVoiceStatusRoute,
+  ApiVoiceUploadRoute: ApiVoiceUploadRoute,
   ApiVtCapitalRoute: ApiVtCapitalRoute,
   ApiWorkspaceRoute: ApiWorkspaceRoute,
   ChatSessionKeyRoute: ChatSessionKeyRoute,

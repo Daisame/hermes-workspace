@@ -4,6 +4,7 @@
  */
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
+import crypto from 'node:crypto'
 
 const PROFILES_DIR = '/home/mako/.hermes/profiles'
 const RESTART_SCRIPT = '/opt/ai/bin/restart-agent'
@@ -13,6 +14,8 @@ export type GatewayConfiguredInfo = {
   model: string | null
   contextLength: number | null
   provider: string | null
+  /** SHA-256 hash of config.yaml content at last gateway start — used for restart-required detection */
+  startedHash: string | null
 } | null
 
 export type GatewayLiveInfo = {
@@ -54,6 +57,24 @@ export async function getConfiguredInfo(agentName: string): Promise<GatewayConfi
   const configPath = `${PROFILES_DIR}/${agentName}/config.yaml`
   if (!fs.existsSync(configPath)) return null
 
+  // Compute current config hash for restart-required detection
+  let startedHash: string | null = null
+  try {
+    const content = fs.readFileSync(configPath, 'utf8')
+    const currentHash = crypto.createHash('sha256').update(content).digest('hex')
+
+    // Read the hash stored at last gateway start
+    const hashFile = `${PROFILES_DIR}/${agentName}/.last-started-config-hash`
+    if (fs.existsSync(hashFile)) {
+      startedHash = fs.readFileSync(hashFile, 'utf8').trim()
+    } else {
+      // No hash file yet — treat current config as the baseline
+      startedHash = currentHash
+    }
+  } catch {
+    startedHash = null
+  }
+
   try {
     const content = fs.readFileSync(configPath, 'utf8')
     // Simple YAML parsing for the model section — avoid full yaml dependency in server route
@@ -87,6 +108,7 @@ export async function getConfiguredInfo(agentName: string): Promise<GatewayConfi
       model: defaultMatch ? defaultMatch[1].trim().replace(/^['"]|['"]$/g, '') : null,
       contextLength: contextMatch ? parseInt(contextMatch[1], 10) : null,
       provider: providerMatch ? providerMatch[1].trim().replace(/^['"]|['"]$/g, '') : null,
+      startedHash,
     }
   } catch {
     return null

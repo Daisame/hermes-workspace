@@ -45,6 +45,17 @@ async function fetchModels(): Promise<{ ok: boolean; models: ModelEntry[]; error
   }
 }
 
+async function fetchGatewayStatus(agentName: string): Promise<{ hasMismatch: boolean }> {
+  try {
+    const res = await fetch(`/api/gateway-agent-status?agentName=${encodeURIComponent(agentName)}`)
+    if (!res.ok) return { hasMismatch: false }
+    const data = await res.json()
+    return { hasMismatch: !!data.hasMismatch }
+  } catch {
+    return { hasMismatch: false }
+  }
+}
+
 async function saveModel(
   profileName: string,
   modelId: string,
@@ -72,13 +83,15 @@ export function ModelPanel({ agentId, currentModel, onDirtyChange }: ModelPanelP
   const [loading, setLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [hasMismatch, setHasMismatch] = useState(false)
 
-  // Find the model currently loaded by LM Studio (what's actually running)
+  // Find the model currently loaded by LM Studio (what's actually running on the GPU)
   const loadedModelId = models.find((m) => m.state === 'loaded')?.id ?? null
 
-  // Dirty state: saved config differs from what LM Studio has actually loaded.
-  // This persists after save until a gateway restart picks up the new model.
-  const isDirty = currentModel !== null && loadedModelId !== null && currentModel !== loadedModelId
+  // Dirty state: two independent checks, either one triggers restart-required.
+  // Check A: config.yaml content hash differs from last gateway start (catches any config change).
+  // Check B: saved model differs from LM Studio's actually loaded model.
+  const isDirty = hasMismatch || (currentModel !== null && loadedModelId !== null && currentModel !== loadedModelId)
 
   useEffect(() => {
     onDirtyChange?.(isDirty)
@@ -95,13 +108,19 @@ export function ModelPanel({ agentId, currentModel, onDirtyChange }: ModelPanelP
       if (cancelled) return
       setLoading(true)
       setFetchError(null)
-      fetchModels().then((data) => {
+
+      // Fetch models and gateway status in parallel
+      Promise.all([
+        fetchModels(),
+        fetchGatewayStatus(agentId.toLowerCase()),
+      ]).then(([modelData, gwData]) => {
         if (!cancelled) {
-          if (data.ok) {
-            setModels(data.models)
+          if (modelData.ok) {
+            setModels(modelData.models)
           } else {
-            setFetchError(data.error ?? 'Failed to load models')
+            setFetchError(modelData.error ?? 'Failed to load models')
           }
+          setHasMismatch(gwData.hasMismatch)
           setLoading(false)
         }
       })
@@ -120,6 +139,8 @@ export function ModelPanel({ agentId, currentModel, onDirtyChange }: ModelPanelP
       const result = await saveModel(agentId.toLowerCase(), selectedModel)
       if (result.ok) {
         toast(`Model changed to ${selectedModel}`, { type: 'success' })
+        // Refresh gateway status after save — config hash will differ from last start
+        fetchGatewayStatus(agentId.toLowerCase()).then((data) => setHasMismatch(data.hasMismatch))
       } else {
         throw new Error(result.error ?? 'Save failed')
       }
@@ -245,7 +266,7 @@ export function ModelPanel({ agentId, currentModel, onDirtyChange }: ModelPanelP
           {isSaving ? 'Saving…' : 'Save model change'}
         </Button>
 
-        {/* Dirty-state indicator: shows when saved config differs from what LM Studio has loaded */}
+        {/* Dirty-state indicator: shows when config hasn't been picked up by the running gateway */}
         {isDirty && (
           <TooltipProvider>
             <TooltipRoot>
