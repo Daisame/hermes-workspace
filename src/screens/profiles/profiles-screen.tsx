@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils'
 import { useAgentRoster } from '@/lib/federation-roster'
 import { VoicePanel } from '@/components/voice-panel/voice-panel'
 import { GatewayPanel } from '@/components/gateway-panel/gateway-panel'
+import { ModelPanel } from '@/components/model-panel/model-panel'
 
 type ProfileSummary = {
   name: string
@@ -1331,6 +1332,12 @@ export function ProfilesScreen() {
                         <p className="text-sm text-primary-400 dark:text-neutral-500">No skills configured</p>
                       )}
                     </div>
+
+                    {/* ── Model selection section ─────────────── */}
+                    <ModelPanel
+                      agentId={(detailsName || '').toLowerCase()}
+                      currentModel={(detailQuery.data?.profile?.config as any)?.model?.default ?? null}
+                    />
 
                     {/* ── Voice section ─────────────────────── */}
                     <VoicePanel
