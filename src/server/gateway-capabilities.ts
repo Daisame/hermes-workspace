@@ -267,7 +267,7 @@ export const BEARER_TOKEN = process.env.HERMES_API_TOKEN || process.env.CLAUDE_A
  * do not trust a manually copied dashboard token env var — it goes stale every
  * time the dashboard restarts.
  */
-function authHeaders(): Record<string, string> {
+export function authHeaders(): Record<string, string> {
   return BEARER_TOKEN ? { Authorization: `Bearer ${BEARER_TOKEN}` } : {}
 }
 

@@ -5,6 +5,7 @@
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import crypto from 'node:crypto'
+import { authHeaders } from './gateway-capabilities'
 
 const PROFILES_DIR = '/home/mako/.hermes/profiles'
 const RESTART_SCRIPT = '/opt/ai/bin/restart-agent'
@@ -179,6 +180,7 @@ export async function getHealthInfo(agentName: string): Promise<{
 
     const res = await fetch(`http://127.0.0.1:${port}/health/detailed`, {
       signal: controller.signal,
+      headers: authHeaders(),
     })
     clearTimeout(timeout)
 

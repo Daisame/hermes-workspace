@@ -5,6 +5,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../server/auth-middleware'
+import { authHeaders } from '../../server/gateway-capabilities'
 
 interface AgentStatusResponse {
   name: string
@@ -29,6 +30,7 @@ async function probeAgent(port: number): Promise<AgentStatusResponse> {
     
     const res = await fetch(`http://127.0.0.1:${port}/health/detailed`, {
       signal: controller.signal,
+      headers: authHeaders(),
     })
     clearTimeout(timeout)
 
