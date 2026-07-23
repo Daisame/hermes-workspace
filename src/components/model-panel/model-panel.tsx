@@ -26,6 +26,7 @@ interface ModelPanelProps {
   agentId: string
   currentModel: string | null
   onDirtyChange?: (isDirty: boolean) => void
+  onSaved?: () => void
 }
 
 function formatContextLength(value: number): string {
@@ -77,7 +78,7 @@ async function saveModel(
   return await res.json()
 }
 
-export function ModelPanel({ agentId, currentModel, onDirtyChange }: ModelPanelProps) {
+export function ModelPanel({ agentId, currentModel, onDirtyChange, onSaved }: ModelPanelProps) {
   const [models, setModels] = useState<ModelEntry[]>([])
   const [selectedModel, setSelectedModel] = useState<string>(currentModel ?? '')
   const [loading, setLoading] = useState(true)
@@ -141,6 +142,7 @@ export function ModelPanel({ agentId, currentModel, onDirtyChange }: ModelPanelP
         toast(`Model changed to ${selectedModel}`, { type: 'success' })
         // Refresh gateway status after save — config hash will differ from last start
         fetchGatewayStatus(agentId.toLowerCase()).then((data) => setHasMismatch(data.hasMismatch))
+        onSaved?.()
       } else {
         throw new Error(result.error ?? 'Save failed')
       }

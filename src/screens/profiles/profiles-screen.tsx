@@ -1337,6 +1337,10 @@ export function ProfilesScreen() {
                     <ModelPanel
                       agentId={(detailsName || '').toLowerCase()}
                       currentModel={(detailQuery.data?.profile?.config as any)?.model?.default ?? null}
+                      onSaved={() => {
+                        void queryClient.invalidateQueries({ queryKey: ['profiles', 'read', detailsName] })
+                        void detailQuery.refetch()
+                      }}
                     />
 
                     {/* ── Voice section ─────────────────────── */}
