@@ -445,7 +445,13 @@ export function updateProfileConfig(
           value as Record<string, unknown>,
         )
       } else {
-        target[key] = value
+        // Special case: model config is nested but patch sends bare string — write into .default instead of replacing the whole block
+        if (key === 'model' && typeof value === 'string' && target[key] && typeof target[key] === 'object') {
+          const m = target[key] as Record<string, unknown>
+          m.default = value
+        } else {
+          target[key] = value
+        }
       }
     }
   }
