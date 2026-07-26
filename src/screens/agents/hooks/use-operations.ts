@@ -673,33 +673,32 @@ export function useOperations() {
       emoji: string
       systemPrompt: string
     }) => {
-      // Read existing profile config to detect gaming routing before deciding patch shape
-      let hasGamingModel = false
+      // Read existing profile config to detect if model is nested — true for all profiles, not just gaming-routed ones
+      let hasNestedModelConfig = false
       try {
         const readResp = await fetch(`/api/profiles/read?name=${encodeURIComponent(input.agentId)}`)
         if (readResp.ok) {
           const data = (await readResp.json()) as { profile?: { config?: Record<string, unknown> } }
           const modelCfg = data.profile?.config?.model
-          if (modelCfg && typeof modelCfg === 'object' && !Array.isArray(modelCfg)) {
-            hasGamingModel = Boolean((modelCfg as any).gaming_model)
-          }
+          hasNestedModelConfig = Boolean(modelCfg && typeof modelCfg === 'object' && !Array.isArray(modelCfg))
         }
       } catch {
-        // Read failure: treat as non-gaming, fall through to bare string (Fix #1 handles nested config safely)
+        // Read failure: treat as non-nested, fall through to bare string (Fix #1 handles nested config safely)
       }
 
       // Persist model + system prompt to the profile's config.yaml so they
       // survive across machines / clients.
       const patch: Record<string, unknown> = {}
       if (input.model.trim()) {
-        if (hasGamingModel) {
-          // Gaming-routed profile: update both default and gaming_model so gateway-start.sh picks up the change on restart
+        if (hasNestedModelConfig) {
+          // Nested model config (all 5 profiles): update both default and gaming_model so gateway-start.sh picks up the change on restart.
+          // For cora/lyra/alethea this CREATES gaming_model; for nyx/kira it updates an existing key. Either way, deepMerge handles it correctly.
           patch.model = {
             default: input.model.trim(),
             gaming_model: input.model.trim(),
           }
         } else {
-          // Non-gaming profile: bare string (Fix #1 handles nested model config if present)
+          // Non-nested model config (edge case): bare string (Fix #1 handles nested model config if present)
           patch.model = input.model.trim()
         }
       }
