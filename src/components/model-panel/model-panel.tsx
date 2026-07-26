@@ -66,7 +66,7 @@ async function saveModel(
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       name: profileName,
-      patch: { model: { default: modelId } },
+      patch: { model: { default: modelId, gaming_model: modelId } },
     }),
   })
 
