@@ -155,6 +155,10 @@ export function ModelPanel({ agentId, currentModel, onDirtyChange, onSaved }: Mo
 
   const selectedModelData = models.find((m) => m.id === selectedModel)
 
+  // Show configured model even if it's not in LM Studio's current catalog.
+  // This prevents the display from drifting to whatever fallback was loaded when gaming PC went offline.
+  const isConfiguredModelAvailable = !!selectedModelData
+
   return (
     <div className="rounded-xl border border-primary-200 bg-primary-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">
       <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-primary-500 dark:text-neutral-400">
@@ -167,20 +171,34 @@ export function ModelPanel({ agentId, currentModel, onDirtyChange, onSaved }: Mo
         </div>
       )}
 
-      {/* Current model info */}
-      {!loading && selectedModelData && (
+      {/* Current model info — always show what config.yaml says, even if unavailable */}
+      {!loading && currentModel && (
         <div className="mb-3 rounded-xl border border-primary-100 bg-primary-100/60 p-3 dark:border-neutral-700 dark:bg-neutral-800/50">
-          <p className="text-xs font-medium text-primary-900 dark:text-neutral-200">
-            {selectedModelData.displayName}
-          </p>
-          <div className="mt-1 flex gap-3 text-[10px] text-primary-400 dark:text-neutral-500">
-            <span>ID: <code className="text-[9px]">{selectedModelData.id}</code></span>
-            {selectedModelData.quantization && <span>Quant: {selectedModelData.quantization}</span>}
-            <span>Context: {formatContextLength(selectedModelData.maxContextLength)}</span>
-            <span className={selectedModelData.state === 'loaded' ? 'text-emerald-500' : ''}>
-              {selectedModelData.state === 'loaded' ? '● Loaded' : '○ Not loaded'}
-            </span>
-          </div>
+          {isConfiguredModelAvailable ? (
+            <>
+              <p className="text-xs font-medium text-primary-900 dark:text-neutral-200">
+                {selectedModelData!.displayName}
+              </p>
+              <div className="mt-1 flex gap-3 text-[10px] text-primary-400 dark:text-neutral-500">
+                <span>ID: <code className="text-[9px]">{selectedModelData!.id}</code></span>
+                {selectedModelData!.quantization && <span>Quant: {selectedModelData!.quantization}</span>}
+                <span>Context: {formatContextLength(selectedModelData!.maxContextLength)}</span>
+                <span className={selectedModelData!.state === 'loaded' ? 'text-emerald-500' : ''}>
+                  {selectedModelData!.state === 'loaded' ? '● Loaded' : '○ Not loaded'}
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-xs font-medium text-primary-900 dark:text-neutral-200">
+                {currentModel}
+              </p>
+              <div className="mt-1 flex gap-3 text-[10px] text-amber-500 dark:text-amber-400">
+                <span>ID: <code className="text-[9px]">{currentModel}</code></span>
+                <span>● Not currently available</span>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -200,7 +218,16 @@ export function ModelPanel({ agentId, currentModel, onDirtyChange, onSaved }: Mo
                 disabled={isSaving || models.length === 0}
                 className="h-9 w-full rounded-xl border border-primary-200 bg-primary-50 px-3 pr-8 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-[3px] focus:ring-primary-500/24 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
               >
-                {models.find((m) => m.id === selectedModel)?.displayName || 'Select a model'}
+                {isConfiguredModelAvailable && selectedModelData ? (
+                  <span>{selectedModelData.displayName}</span>
+                ) : currentModel ? (
+                  <span className="flex items-center gap-1">
+                    <span className="truncate">{currentModel}</span>
+                    <span className="text-[10px] text-amber-500 dark:text-amber-400 shrink-0">(unavailable)</span>
+                  </span>
+                ) : (
+                  'Select a model'
+                )}
                 <HugeiconsIcon icon={ChevronDown} size={16} className="pointer-events-none absolute right-2 top-2.5 text-primary-400 dark:text-neutral-500" />
               </button>
             </MenuTrigger>
