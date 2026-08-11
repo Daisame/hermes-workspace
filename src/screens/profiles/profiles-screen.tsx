@@ -1336,7 +1336,7 @@ export function ProfilesScreen() {
                     {/* ── Model selection section ─────────────── */}
                     <ModelPanel
                       agentId={(detailsName || '').toLowerCase()}
-                      currentModel={(detailQuery.data?.profile?.config as any)?.model?.default ?? null}
+                      currentModel={(detailQuery.data?.profile?.config as any)?.model?.gaming_model ?? (detailQuery.data?.profile?.config as any)?.model?.default ?? null}
                       onSaved={() => {
                         void queryClient.invalidateQueries({ queryKey: ['profiles', 'read', detailsName] })
                         void detailQuery.refetch()

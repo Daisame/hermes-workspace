@@ -100,13 +100,14 @@ export async function getConfiguredInfo(agentName: string): Promise<GatewayConfi
 
     const modelBlock = modelLines.join('\n')
     const baseUrlMatch = modelBlock.match(/base_url:\s*(.+)$/m)
+    const gamingModelMatch = modelBlock.match(/gaming_model:\s*(.+)$/m)
     const defaultMatch = modelBlock.match(/\bdefault:\s*(.+)$/m)
     const contextMatch = modelBlock.match(/context_length:\s*(\d+)/m)
     const providerMatch = modelBlock.match(/\bprovider:\s*(.+)$/m)
 
     return {
       baseUrl: baseUrlMatch ? baseUrlMatch[1].trim().replace(/^['"]|['"]$/g, '') : null,
-      model: defaultMatch ? defaultMatch[1].trim().replace(/^['"]|['"]$/g, '') : null,
+      model: (gamingModelMatch || defaultMatch)?.[1]?.trim().replace(/^['"]|['"]$/g, '') ?? null,
       contextLength: contextMatch ? parseInt(contextMatch[1], 10) : null,
       provider: providerMatch ? providerMatch[1].trim().replace(/^['"]|['"]$/g, '') : null,
       startedHash,
