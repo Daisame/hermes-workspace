@@ -126,8 +126,12 @@ export async function listSessions(limit = 50, offset = 0): Promise<{
   )
 }
 
-export async function getSession(id: string): Promise<DashboardSession> {
-  return dashboardJson(`/api/sessions/${encodeURIComponent(id)}`)
+export async function getSession(
+  id: string,
+  profile?: string,
+): Promise<DashboardSession> {
+  const query = profile ? `?profile=${encodeURIComponent(profile)}` : ''
+  return dashboardJson(`/api/sessions/${encodeURIComponent(id)}${query}`)
 }
 
 export async function getSessionMessages(id: string): Promise<{
@@ -142,10 +146,86 @@ export async function searchSessions(q: string): Promise<SessionSearchResponse> 
   return dashboardJson(`/api/sessions/search?q=${encodeURIComponent(q)}`)
 }
 
-export async function deleteSession(id: string): Promise<{ ok: boolean }> {
-  return dashboardJson(`/api/sessions/${encodeURIComponent(id)}`, {
-    method: 'DELETE',
-  })
+// Hermes >= v0.23.1 fences session edits and deletes with a "mutation identity":
+// read the snapshot, then send request_id + expected_revision (+ expected_generation).
+// Without it the dashboard answers 409 client_upgrade_required.
+export type SessionMutationSnapshot = {
+  session_id: string
+  exists: boolean
+  runtime_revision: number
+  runtime_generation: number | null
+}
+
+export async function getSessionMutationSnapshot(
+  id: string,
+  profile?: string,
+): Promise<SessionMutationSnapshot> {
+  const query = profile ? `?profile=${encodeURIComponent(profile)}` : ''
+  return dashboardJson(
+    `/api/sessions/${encodeURIComponent(id)}/mutation-snapshot${query}`,
+  )
+}
+
+function mutationIdentity(
+  prefix: string,
+  snapshot: SessionMutationSnapshot,
+  options?: { requireGeneration?: boolean },
+): Record<string, string | number> {
+  const identity: Record<string, string | number> = {
+    request_id: `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+    expected_revision: snapshot.runtime_revision,
+  }
+  if (snapshot.runtime_generation !== null && snapshot.runtime_generation !== undefined) {
+    identity.expected_generation = snapshot.runtime_generation
+  } else if (options?.requireGeneration) {
+    // The server rejects a delete with no expected_generation (invalid_params);
+    // the column is NOT NULL DEFAULT 0, so 0 is the generation of an untouched session.
+    identity.expected_generation = 0
+  }
+  return identity
+}
+
+function explainMutationConflict(action: string, id: string, err: unknown): Error {
+  const msg = err instanceof Error ? err.message : String(err)
+  if (msg.includes('session_busy')) {
+    return new Error(`Cannot ${action} session ${id}: it is busy with an active turn`)
+  }
+  if (msg.includes('unknown_execution')) {
+    return new Error(
+      `Cannot ${action} session ${id}: its last turn was lost across a gateway restart`,
+    )
+  }
+  if (msg.includes('revision_conflict')) {
+    return new Error(
+      `Cannot ${action} session ${id}: it changed while the request was in flight; refresh and try again`,
+    )
+  }
+  return err instanceof Error ? err : new Error(msg)
+}
+
+export async function deleteSession(
+  id: string,
+  profile?: string,
+): Promise<{ ok: boolean; already_absent?: boolean }> {
+  const snapshot = await getSessionMutationSnapshot(id, profile)
+  if (!snapshot.exists) return { ok: true, already_absent: true }
+
+  const params = new URLSearchParams()
+  for (const [k, v] of Object.entries(
+    mutationIdentity('del', snapshot, { requireGeneration: true }),
+  )) {
+    params.set(k, String(v))
+  }
+  if (profile) params.set('profile', profile)
+
+  try {
+    return await dashboardJson(
+      `/api/sessions/${encodeURIComponent(id)}?${params.toString()}`,
+      { method: 'DELETE' },
+    )
+  } catch (err) {
+    throw explainMutationConflict('delete', id, err)
+  }
 }
 
 export async function createSession(
@@ -161,12 +241,30 @@ export async function createSession(
 export async function updateSession(
   id: string,
   body: Record<string, unknown>,
+  profile?: string,
 ): Promise<{ session: DashboardSession }> {
-  return dashboardJson(`/api/sessions/${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+  const snapshot = await getSessionMutationSnapshot(id, profile)
+  if (!snapshot.exists) {
+    throw new Error(`Cannot update session ${id}: session not found`)
+  }
+
+  const payload: Record<string, unknown> = {
+    ...body,
+    ...mutationIdentity('upd', snapshot),
+  }
+  if (profile && !payload.profile) payload.profile = profile
+
+  try {
+    await dashboardJson(`/api/sessions/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+  } catch (err) {
+    throw explainMutationConflict('update', id, err)
+  }
+  // v0.23.1's PATCH answers {ok, session_id, revision, ...}; callers expect {session}.
+  return { session: await getSession(id, profile) }
 }
 
 export async function forkSession(
